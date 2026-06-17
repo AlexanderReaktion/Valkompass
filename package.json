@@ -1,0 +1,29 @@
+{
+  "name": "valkompass",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "AI-driven valkompass inför riksdagsvalet 2026",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test src/**/*.test.ts",
+    "test:match": "node --test src/matching/engine.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
+    "next": "^16.2.9",
+    "pg": "^8.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}
