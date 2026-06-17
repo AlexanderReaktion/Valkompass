@@ -29,9 +29,16 @@ export interface CommentAnalysis {
   readonly flagReason: string;
 }
 
-export interface AnalyzeInput {
-  readonly comment: string;
+/** En kommentar – knuten till en specifik fråga, eller övergripande (utan questionId). */
+export interface CommentItem {
   readonly questionId?: string;
+  readonly questionText?: string;
+  readonly text: string;
+}
+
+export interface AnalyzeInput {
+  /** Alla väljarens kommentarer (per-fråga + ev. övergripande) som ska vägas in. */
+  readonly comments: readonly CommentItem[];
   readonly topMatches: readonly { partyId: string; partyName: string; percent: number | null }[];
   readonly questions: readonly { id: string; text: string }[];
 }

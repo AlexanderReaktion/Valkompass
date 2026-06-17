@@ -188,3 +188,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   .stepnav .btn { min-width: 0; flex: 1; }
   .container { padding: 28px 16px 64px; }
 }
+
+.qcomment { margin-top: 10px; }
+.qcommentbox { width: 100%; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; resize: vertical; background: #fffdf9; }
+.qcomments-summary { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+.qcomments-summary ul { margin: 6px 0 0; padding-left: 18px; }
+.qcomments-summary li { margin: 4px 0; font-size: 0.9rem; }

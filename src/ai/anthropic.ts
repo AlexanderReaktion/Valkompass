@@ -122,10 +122,10 @@ ${context || "(inga utdrag hittades)"}`;
 
 // ---------- kommentaranalys ----------
 
-const ANALYSIS_SYSTEM = `Du analyserar en väljares fritextkommentar i en valkompass. Du är neutral och tolkande.
+const ANALYSIS_SYSTEM = `Du analyserar en väljares fritextkommentarer i en valkompass. Några hör till specifika frågor, någon kan vara övergripande. Gör EN samlad, neutral och tolkande analys som väger in ALLA kommentarerna.
 Regler:
-- Sammanfatta och tematisera vad personen faktiskt uttrycker. Lägg inte ord i mun.
-- Koppla till relevanta frågor (relatedQuestionIds) bara när det är tydligt.
+- Sammanfatta och tematisera vad personen faktiskt uttrycker över alla kommentarer. Lägg inte ord i mun.
+- Koppla till relevanta frågor (relatedQuestionIds) bara när det är tydligt – inkludera de frågor kommentarerna gäller.
 - policySignals: notera ev. lutning (left/right/gal/tan) per dimension, eller "unclear".
 - Rekommendera ALDRIG ett parti. Detta lager ändrar inte matchningssiffran.
 - Sätt flagged=true endast vid olämpligt/skadligt innehåll (hat, hot, spam) och ange flagReason; annars flagged=false och flagReason="".
@@ -138,10 +138,15 @@ export function anthropicCommentAnalyzer(): CommentAnalyzer {
         .map((m) => `${m.partyName}: ${m.percent === null ? "–" : `${m.percent}%`}`)
         .join(", ");
       const qlist = input.questions.map((q) => `${q.id}: ${q.text}`).join("\n");
-      const user = `Kommentar: "${input.comment}"
-${input.questionId ? `Gäller fråga: ${input.questionId}\n` : ""}Användarens toppmatchningar: ${top || "(inga)"}
+      const commentsText = input.comments
+        .map((c, i) => `${i + 1}. ${c.questionId ? `[fråga: ${c.questionText ?? c.questionId}]` : "[övergripande]"}\n"${c.text}"`)
+        .join("\n\n");
+      const user = `Väljarens kommentarer:
+${commentsText}
 
-Frågor:
+Användarens toppmatchningar: ${top || "(inga)"}
+
+Frågor (id: text):
 ${qlist || "(inga)"}`;
 
       return structured<CommentAnalysis>({

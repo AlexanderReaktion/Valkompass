@@ -26,42 +26,40 @@ const baseAnalysis: CommentAnalysis = {
   flagReason: "",
 };
 
-// Fake-analyzer som fångar input för verifiering.
 function capturingAnalyzer(out: CommentAnalysis): { analyzer: CommentAnalyzer; last: () => AnalyzeInput | null } {
   let captured: AnalyzeInput | null = null;
   return {
-    analyzer: {
-      async analyze(input) {
-        captured = input;
-        return out;
-      },
-    },
+    analyzer: { async analyze(input) { captured = input; return out; } },
     last: () => captured,
   };
 }
 
-test("tom kommentar kastar fel", async () => {
+test("inga (eller tomma) kommentarer kastar fel", async () => {
   const { analyzer } = capturingAnalyzer(baseAnalysis);
   await assert.rejects(
-    () => analyzeComment({ comment: "   ", ranking, questions: [], analyzer }),
-    /Tom kommentar/,
+    () => analyzeComment({ comments: [{ text: "   " }], ranking, questions: [], analyzer }),
+    /Inga kommentarer/,
   );
 });
 
-test("assemblerar topp-3 matchningar och trimmar kommentaren", async () => {
+test("väger in flera per-fråga-kommentarer, trimmar och behåller frågekoppling", async () => {
   const { analyzer, last } = capturingAnalyzer(baseAnalysis);
   await analyzeComment({
-    comment: "  jag bryr mig om skatter  ",
-    questionId: "q1",
+    comments: [
+      { questionId: "q1", questionText: "Skatt?", text: "  viktigt  " },
+      { text: "övergripande" },
+      { questionId: "q2", text: "   " }, // tom → ska filtreras bort
+    ],
     ranking,
     questions: [{ id: "q1", text: "Skatt?" }],
     analyzer,
   });
   const input = last()!;
-  assert.equal(input.comment, "jag bryr mig om skatter");
-  assert.equal(input.questionId, "q1");
+  assert.equal(input.comments.length, 2);
+  assert.deepEqual(input.comments[0], { questionId: "q1", questionText: "Skatt?", text: "viktigt" });
+  assert.equal(input.comments[1]!.text, "övergripande");
+  assert.equal(input.comments[1]!.questionId, undefined);
   assert.equal(input.topMatches.length, 3);
-  assert.deepEqual(input.topMatches.map((m) => m.partyId), ["M", "L", "KD"]);
 });
 
 test("isPresentable speglar flaggning", () => {

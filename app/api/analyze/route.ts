@@ -21,6 +21,9 @@ interface Body {
   sessionId?: string;
   method?: MatchMethod;
   answers?: Record<string, { value: number | null; weight?: number }>;
+  /** Per-fråga-kommentarer + ev. övergripande (questionId utelämnas för övergripande). */
+  comments?: { questionId?: string; text?: string }[];
+  /** Bakåtkompatibelt: en enskild kommentar. */
   comment?: string;
   questionId?: string;
   consent?: { article9?: boolean; bannerVersion?: string };
@@ -77,17 +80,33 @@ export async function POST(request: Request): Promise<Response> {
     createdAt: now,
   });
 
+  // Samla alla kommentarer (per-fråga + ev. övergripande), berika med frågetext.
+  const qText: Record<string, string> = Object.fromEntries(activeCatalog.questions.map((q) => [q.id, q.text]));
+  const items: { questionId?: string; questionText?: string; text: string }[] = [];
+  if (Array.isArray(body.comments)) {
+    for (const c of body.comments) {
+      if (c && typeof c.text === "string" && c.text.trim()) {
+        items.push(c.questionId ? { questionId: c.questionId, questionText: qText[c.questionId], text: c.text } : { text: c.text });
+      }
+    }
+  }
+  if (typeof body.comment === "string" && body.comment.trim()) {
+    items.push(body.questionId ? { questionId: body.questionId, questionText: qText[body.questionId], text: body.comment } : { text: body.comment });
+  }
+
   let analysis: CommentAnalysis | null = null;
   let analysisNote: string | null = null;
-  const comment = body.comment?.trim();
 
-  if (comment) {
-    // Känslig art. 9-data: kräver uttryckligt samtycke för att analyseras/lagras.
+  if (items.length > 0) {
+    // Känsliga art. 9-data: kräver uttryckligt samtycke för att analyseras/lagras.
     if (body.consent?.article9 !== true) {
       return Response.json(
-        { error: "Uttryckligt samtycke (art. 9) krävs för att analysera och lagra kommentaren." },
+        { error: "Uttryckligt samtycke (art. 9) krävs för att analysera och lagra kommentarer." },
         { status: 400 },
       );
+    }
+    if (items.length > 60 || items.some((c) => c.text.length > MAX_COMMENT_LENGTH)) {
+      return Response.json({ error: "För många eller för långa kommentarer." }, { status: 400 });
     }
     await grantConsent(stores.responses, {
       sessionId,
@@ -105,31 +124,32 @@ export async function POST(request: Request): Promise<Response> {
     } else {
       try {
         const result = await analyzeComment({
-          comment,
-          ...(body.questionId ? { questionId: body.questionId } : {}),
+          comments: items,
           ranking,
           questions: activeCatalog.questions.map((q) => ({ id: q.id, text: q.text })),
           analyzer: anthropicCommentAnalyzer(),
         });
         if (isPresentable(result)) analysis = result;
-        else analysisNote = "Kommentaren flaggades och visas inte.";
+        else analysisNote = "En eller flera kommentarer flaggades och visas inte.";
       } catch {
         // AI-felet får inte fälla hela svaret — matchningen returneras ändå.
         analysisNote = "AI-analysen kunde inte slutföras just nu.";
       }
     }
 
-    try {
-      await storeComment(stores.responses, {
-        sessionId,
-        text: comment,
-        ...(body.questionId ? { questionId: body.questionId } : {}),
-        ...(analysis ? { analysis } : {}),
-        now,
-        genId: () => crypto.randomUUID(),
-      });
-    } catch (e) {
-      if (!(e instanceof ConsentMissingError)) throw e;
+    // Lagra varje kommentar (samtycke finns).
+    for (const c of items) {
+      try {
+        await storeComment(stores.responses, {
+          sessionId,
+          text: c.text,
+          ...(c.questionId ? { questionId: c.questionId } : {}),
+          now,
+          genId: () => crypto.randomUUID(),
+        });
+      } catch (e) {
+        if (!(e instanceof ConsentMissingError)) throw e;
+      }
     }
   }
 

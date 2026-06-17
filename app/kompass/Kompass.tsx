@@ -70,6 +70,8 @@ export default function Kompass({ catalog, parties, scale, sources }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
   const [comment, setComment] = useState("");
+  const [comments, setComments] = useState<Record<string, string>>({}); // per-fråga
+  const [commentOpen, setCommentOpen] = useState<Record<string, boolean>>({});
   const [consent, setConsent] = useState(false);
   const [shared, setShared] = useState(false);
   const [ai, setAi] = useState<{ loading: boolean; analysis: CommentAnalysis | null; note: string | null; error: string | null }>({
@@ -104,8 +106,16 @@ export default function Kompass({ catalog, parties, scale, sources }: Props) {
     [parties, questions, scale],
   );
 
+  const commentItems = () => {
+    const items: { questionId?: string; text: string }[] = [];
+    for (const [id, text] of Object.entries(comments)) if (text.trim()) items.push({ questionId: id, text });
+    if (comment.trim()) items.push({ text: comment });
+    return items;
+  };
+
   async function submitComment() {
-    if (!comment.trim() || !consent) return;
+    const items = commentItems();
+    if (items.length === 0 || !consent) return;
     setAi({ loading: true, analysis: null, note: null, error: null });
     try {
       const res = await fetch("/api/analyze", {
@@ -114,7 +124,7 @@ export default function Kompass({ catalog, parties, scale, sources }: Props) {
         body: JSON.stringify({
           sessionId, method,
           answers: Object.fromEntries(Object.entries(answers).map(([id, a]) => [id, { value: a.value, weight: a.weight }])),
-          comment, consent: { article9: true, bannerVersion: "v1" },
+          comments: items, consent: { article9: true, bannerVersion: "v1" },
         }),
       });
       const data = (await res.json()) as { error?: string; analysis?: CommentAnalysis | null; analysisNote?: string | null };
@@ -307,14 +317,24 @@ export default function Kompass({ catalog, parties, scale, sources }: Props) {
 
             <div className="comment">
               <h2>Kommentera ditt val</h2>
-              <p className="meta">Din kommentar tolkas av AI som ett additivt lager – den ändrar aldrig matchningssiffran.</p>
-              <textarea className="commentbox" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Vad är viktigast för dig, och varför?" rows={4} />
+              <p className="meta">Dina kommentarer tolkas av AI som ett additivt lager – de ändrar aldrig matchningssiffran. Kommentera enskilda frågor inne i testet, och/eller skriv en övergripande kommentar här.</p>
+              {Object.entries(comments).filter(([, t]) => t.trim()).length > 0 && (
+                <div className="qcomments-summary">
+                  <p className="meta">Dina frågekommentarer (vägs in i analysen):</p>
+                  <ul>
+                    {Object.entries(comments).filter(([, t]) => t.trim()).map(([id, t]) => (
+                      <li key={id}><strong>{qText[id]}</strong> — {t}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <textarea className="commentbox" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Övergripande kommentar (valfritt) – vad är viktigast för dig, och varför?" rows={4} />
               <label className="consent">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                <span>Jag samtycker till att min kommentar – som kan avslöja politiska åsikter – analyseras och lagras till efter valdagen (13 september 2026) och då raderas. Frivilligt; kan återkallas. (GDPR art. 9)</span>
+                <span>Jag samtycker till att mina kommentarer – som kan avslöja politiska åsikter – analyseras och lagras till efter valdagen (13 september 2026) och då raderas. Frivilligt; kan återkallas. (GDPR art. 9)</span>
               </label>
-              <button type="button" className="btn btn-primary" onClick={submitComment} disabled={ai.loading || !comment.trim() || !consent}>
-                {ai.loading ? "Analyserar…" : "Analysera kommentar"}
+              <button type="button" className="btn btn-primary" onClick={submitComment} disabled={ai.loading || !consent || commentItems().length === 0}>
+                {ai.loading ? "Analyserar…" : "Analysera kommentarer"}
               </button>
               {ai.error && <p className="close">{ai.error}</p>}
               {ai.note && <p className="meta">{ai.note}</p>}
@@ -361,13 +381,31 @@ export default function Kompass({ catalog, parties, scale, sources }: Props) {
       <ProgressHeader />
       <h2 className="sectiontitle">{section.title}</h2>
 
-      {sectionQs.map((q) => (
-        <div className="question" key={q.id}>
-          <div className="topic">{q.topic}</div>
-          <div className="text">{q.text}</div>
-          <Scale id={q.id} />
-        </div>
-      ))}
+      {sectionQs.map((q) => {
+        const showBox = commentOpen[q.id] || (comments[q.id]?.trim().length ?? 0) > 0;
+        return (
+          <div className="question" key={q.id}>
+            <div className="topic">{q.topic}</div>
+            <div className="text">{q.text}</div>
+            <Scale id={q.id} />
+            <div className="qcomment">
+              {showBox ? (
+                <textarea
+                  className="qcommentbox"
+                  placeholder="Din kommentar till frågan (valfritt) – vägs in i AI-analysen…"
+                  rows={2}
+                  value={comments[q.id] ?? ""}
+                  onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
+                />
+              ) : (
+                <button type="button" className="linkbtn" onClick={() => setCommentOpen((s) => ({ ...s, [q.id]: true }))}>
+                  + Kommentera frågan
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
       <div className="stepnav">
         <button type="button" className="btn" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>← Föregående</button>
