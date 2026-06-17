@@ -23,3 +23,5 @@ next-env.d.ts
 /build
 *.log
 .DS_Store
+
+.vercel

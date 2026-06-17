@@ -169,6 +169,8 @@ export function createPostgresStores(connectionString: string): {
   catalog: CatalogStore;
   responses: ResponseStore;
 } {
-  const pool = new PoolCtor({ connectionString });
+  const isLocal = connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+  // Supabase/molndatabaser kräver SSL; lokal Postgres gör det inte.
+  const pool = new PoolCtor({ connectionString, ...(isLocal ? {} : { ssl: { rejectUnauthorized: false } }) });
   return { catalog: new PgCatalogStore(pool), responses: new PgResponseStore(pool) };
 }
