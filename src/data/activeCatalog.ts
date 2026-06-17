@@ -39,3 +39,13 @@ export const activeParties: Party[] = Object.keys(NAMES).map((id) => ({
     catalog2026Positions.filter((p) => p.partyId === id).map((p) => [p.questionId, p.value]),
   ),
 }));
+
+/** Källa per (partyId::questionId) för transparens på resultatsidan. */
+export const activeSources: Record<string, { label: string; url: string }> = Object.fromEntries(
+  catalog2026Positions.flatMap((p) => {
+    const c = p.citations[0];
+    return c && c.url ? [[`${p.partyId}::${p.questionId}`, { label: c.label, url: c.url }] as const] : [];
+  }),
+);
+
+export const partyNames = NAMES;
