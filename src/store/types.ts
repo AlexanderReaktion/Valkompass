@@ -22,6 +22,7 @@ export interface ResultRecord {
   /** Serialiserad matchning (topplista m.m.) för reproducerbarhet. */
   readonly ranking: unknown;
   readonly createdAt: string; // ISO 8601
+  readonly deleteAfter: string; // ISO 8601 — auto-gallras efter detta
 }
 
 /** Fritextkommentar — känslig art. 9-data. */
@@ -55,6 +56,13 @@ export interface CatalogStore {
   listPositions(): Promise<PartyPosition[]>;
 }
 
+/** Allt som hör till en session (DSAR-export, art. 15 GDPR). */
+export interface SessionExport {
+  readonly results: ResultRecord[];
+  readonly comments: CommentRecord[];
+  readonly consents: ConsentRecord[];
+}
+
 /** Svar, kommentarer och samtycke. */
 export interface ResponseStore {
   saveResult(record: ResultRecord): Promise<void>;
@@ -62,7 +70,13 @@ export interface ResponseStore {
   logConsent(record: ConsentRecord): Promise<void>;
   /** Senast loggade samtycke för (session, typ) avgör. */
   hasConsent(sessionId: string, type: ConsentType): Promise<boolean>;
-  listComments(): Promise<CommentRecord[]>;
   /** Tar bort kommentarer vars deleteAfter passerat. Returnerar antal borttagna. */
   purgeExpired(now: string): Promise<number>;
+  /**
+   * DSAR — radering (art. 17): tar bort resultat, kommentarer och samtyckeslogg
+   * för sessionen. Returnerar totalt antal borttagna rader.
+   */
+  deleteBySession(sessionId: string): Promise<number>;
+  /** DSAR — export (art. 15): allt lagrat för sessionen. */
+  exportBySession(sessionId: string): Promise<SessionExport>;
 }

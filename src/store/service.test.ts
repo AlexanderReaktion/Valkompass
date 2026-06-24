@@ -19,7 +19,7 @@ test("storeComment vägrar utan samtycke", async () => {
     () => storeComment(store, { sessionId: "s1", text: "min åsikt", now, genId }),
     ConsentMissingError,
   );
-  assert.equal((await store.listComments()).length, 0);
+  assert.equal(store._commentsForTest().length, 0);
 });
 
 test("storeComment lagrar efter beviljat samtycke och sätter gallringsdatum", async () => {
@@ -35,7 +35,7 @@ test("storeComment lagrar efter beviljat samtycke och sätter gallringsdatum", a
   const rec = await storeComment(store, { sessionId: "s1", text: "min åsikt", now, genId });
   assert.equal(rec.text, "min åsikt");
   assert.equal(rec.deleteAfter, retentionDeadline());
-  assert.equal((await store.listComments()).length, 1);
+  assert.equal(store._commentsForTest().length, 1);
 });
 
 test("återkallat samtycke (senaste avgör) blockerar lagring", async () => {
@@ -58,5 +58,21 @@ test("purgeExpired tar bort kommentarer efter gallringsdatum", async () => {
   await storeComment(store, { sessionId: "s1", text: "x", now, electionDay: "2026-09-13", genId });
   assert.equal(await store.purgeExpired("2026-09-13T12:00:00.000Z"), 0); // före deadline (23:59)
   assert.equal(await store.purgeExpired("2026-09-14T00:00:01.000Z"), 1); // efter deadline
-  assert.equal((await store.listComments()).length, 0);
+  assert.equal(store._commentsForTest().length, 0);
+});
+
+test("purgeExpired tar även bort sparade resultat efter gallringsdatum", async () => {
+  const store = freshStore();
+  await store.saveResult({
+    id: "id-1",
+    sessionId: "s1",
+    catalogVersion: 1,
+    method: "hybrid",
+    canonicalAnswers: { q1: { value: 1, weight: 1 } },
+    ranking: { matches: [] },
+    createdAt: now,
+    deleteAfter: "2026-09-13T23:59:59.999Z",
+  });
+  assert.equal(await store.purgeExpired("2026-09-13T12:00:00.000Z"), 0);
+  assert.equal(await store.purgeExpired("2026-09-14T00:00:01.000Z"), 1);
 });
