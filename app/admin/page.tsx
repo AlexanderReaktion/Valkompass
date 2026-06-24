@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { CatalogQuestion, PartyPosition } from "@/src/catalog/types.ts";
 
 interface CatalogData {
@@ -14,15 +14,6 @@ export default function AdminPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    try {
-      const t = sessionStorage.getItem("admin-token");
-      if (t) setToken(t);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   async function authed(path: string, init?: RequestInit) {
     const res = await fetch(path, {
       ...init,
@@ -35,10 +26,9 @@ export default function AdminPage() {
     setBusy(true);
     setMsg(null);
     try {
-      sessionStorage.setItem("admin-token", token);
       const res = await authed("/api/admin/catalog");
       if (!res.ok) {
-        setMsg(res.status === 403 ? "Fel admin-token." : "Kunde inte ladda.");
+        setMsg(res.status === 401 ? "Fel admin-token." : "Kunde inte ladda.");
         setData(null);
         return;
       }
