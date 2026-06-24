@@ -8,7 +8,6 @@ interface Body {
   kind?: "question" | "position";
   questionId?: string;
   partyId?: string;
-  approver?: string;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -24,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const { catalog } = await getStores();
   const now = new Date().toISOString();
-  const approver = body.approver || "admin";
+  const approver = process.env.ADMIN_APPROVER ?? "admin";
 
   try {
     if (body.kind === "question") {

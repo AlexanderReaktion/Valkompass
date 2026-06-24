@@ -42,6 +42,9 @@ const rows: PositionRow[] = [
   { q: "hbtqi", v: -2, l: "Kvinna till Kvinna – Feministisk valkompass 2026", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
   { q: "nato", v: -1, l: "Vänsterpartiet – Nato", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/nato/" },
   { q: "forsvarsanslag", v: 1, l: "Vänsterpartiet – Försvaret", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/forsvaret/" },
+  // TODO(expertgranskning): v=-2 ger V samma EU-positiva läge som federalisten L, trots att V är EU-skeptiskt.
+  // Frågan "Mer makt bör överföras till EU" talar för att V hör hemma mot den suveränitetsbevarande (positiva) änden.
+  // OBS: eu_makt_alt ärver detta värde via positionSourceId, så endast denna cell behöver flaggas.
   { q: "eu_makt", v: -2, l: "Vänsterpartiet – EU-parlamentet", u: "https://www.vansterpartiet.se/kontakta-oss/eu-parlamentet/" },
   { q: "euro", v: -2, l: "Vänsterpartiet – Euron", u: "https://www.vansterpartiet.se/euval2024/politik/euron/" },
   { q: "public_service", v: -2, l: "Vänsterpartiet – var politik A–Ö", u: "https://www.vansterpartiet.se/var-politik/" },

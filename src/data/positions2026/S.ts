@@ -45,6 +45,8 @@ const rows: PositionRow[] = [
   { q: "eu_makt", v: 0, l: "S i Europaparlamentet", u: "https://sieuropaparlamentet.socialdemokraterna.se/" },
   { q: "euro", v: -1, l: "Europaportalen: S öppnar för en svensk eurodebatt", u: "https://www.europaportalen.se/2024/05/socialdemokraterna-oppnar-en-svensk-eurodebatt" },
   { q: "public_service", v: -2, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
+  // TODO(expertgranskning): v=2 placerar S bland monarkisterna. Frågan "Monarkin bör avskaffas" och S:s
+  // citerade partiprogram 2025 kan tala för republik (negativt värde). Bekräfta tecknet mot programmet innan publicering.
   { q: "monarki", v: 2, l: "Socialdemokraterna: Ett nytt partiprogram (kongress 2025)", u: "https://www.socialdemokraterna.se/vart-parti/ny-riktning-for-sverige-2030/ett-nytt-partiprogram" },
 ];
 
