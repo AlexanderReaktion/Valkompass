@@ -14,7 +14,18 @@ git init && git add . && git commit -m "Valkompass 2026"
 - Skapa en Postgres-databas i EU — **Vercel Postgres** (välj EU-region) eller **Neon** (eu-central).
 - Kör schemat: anslut och kör innehållet i [`../src/db/schema.sql`](../src/db/schema.sql)
   (kräver `vector`-extension för pgvector).
-- Kopiera connection string → `DATABASE_URL`.
+- **Använd en transaction-mode/serverless pooler för `DATABASE_URL`** (Supabase Supavisor
+  port `6543`, Neon pooled-endpoint, PgBouncer i transaction mode). Serverless-funktioner
+  startar många korta instanser; en **session-mode-anslutning (port `5432`) håller en
+  anslutning per instans** och tar snabbt slut på databasens connection-budget. Poolen i
+  appen är dessutom medvetet liten (`PGPOOL_MAX`, default 3).
+- **TLS (verify-full):** sätt `DATABASE_CA_CERT` till leverantörens CA-certifikat (PEM)
+  så att servern verifieras. Utan den ansluter appen krypterat men **overifierat**
+  (`rejectUnauthorized:false`) och loggar en varning vid start.
+- **Retention-skyddsnät (pg_cron):** app-cronen (steg 6) gallrar normalt, men aktivera
+  gärna pg_cron-blocket i [`../src/db/schema.sql`](../src/db/schema.sql) som försvar på
+  djupet — databasen raderar då själv utgångna `comments`/`results` även om app-cronen uteblir.
+- Kopiera connection string (poolad) → `DATABASE_URL`.
 
 ## 3. Upstash Redis (rate limit + budget)
 - Skapa en Upstash Redis-databas (EU-region).
@@ -34,7 +45,9 @@ git init && git add . && git commit -m "Valkompass 2026"
   |---|---|
   | `ANTHROPIC_API_KEY` | din nyckel |
   | `MODEL_ANALYSIS` / `MODEL_POSITIONS` | `claude-opus-4-8` |
-  | `DATABASE_URL` | från steg 2 |
+  | `DATABASE_URL` | från steg 2 (poolad, transaction mode) |
+  | `DATABASE_CA_CERT` | (rek.) CA-cert (PEM) för verify-full TLS |
+  | `PGPOOL_MAX` | (valfritt) max poolanslutningar per instans, default `3` |
   | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | från steg 3 |
   | `ADMIN_TOKEN` | lång slumpsträng (admin-granskning) |
   | `CRON_SECRET` | lång slumpsträng (skyddar gallrings-cron) |
@@ -48,7 +61,7 @@ git init && git add . && git commit -m "Valkompass 2026"
 - Testa kompassen + en kommentar (samtycke). Kontrollera att inga kommentarer loggas i klartext.
 
 ## 7. Innan publikt (blockerare)
-- Ersätt demo-katalogen med **researchade, källbelagda partipositioner** (granskade i admin-UI:t).
+- Expertgranska och publicera den researchade 2026-katalogen i admin-UI:t innan tjänsten öppnas publikt.
 - Fastställ personuppgiftsansvarig i integritetspolicyn; slutför och låt jurist granska
   [`dpia.md`](dpia.md) + policyn.
 - Dokumentera AI Act-klassningen.

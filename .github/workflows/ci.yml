@@ -1,0 +1,32 @@
+# CI: typkoll, tester och säkerhetsgranskning av beroenden på push och PR.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sätt upp Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Installera beroenden
+        run: npm ci
+
+      - name: Typkoll
+        run: npm run typecheck
+
+      - name: Tester
+        run: npm test
+
+      # Blockera bygget vid kända sårbarheter (high/critical) i produktionsberoenden.
+      - name: Säkerhetsgranskning av beroenden
+        run: npm audit --omit=dev --audit-level=high
