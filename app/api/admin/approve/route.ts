@@ -1,6 +1,7 @@
 import { approvePosition, approveQuestion } from "@/src/catalog/catalog.ts";
 import { getStores } from "@/src/store/index.ts";
 import { requireAdmin } from "@/src/server/admin.ts";
+import { runPooled } from "@/src/server/pooled.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // bulk-godkännande gör många skrivningar
@@ -36,10 +37,8 @@ export async function POST(request: Request): Promise<Response> {
       const pToApprove = positions.filter(
         (p) => p.status === "draft" && !excl.has(`${p.questionId}::${p.partyId}`),
       );
-      await Promise.all([
-        ...qToApprove.map((q) => catalog.saveQuestion(approveQuestion(q, approver, now))),
-        ...pToApprove.map((p) => catalog.savePosition(approvePosition(p, approver, now))),
-      ]);
+      await runPooled(qToApprove, (q) => catalog.saveQuestion(approveQuestion(q, approver, now)));
+      await runPooled(pToApprove, (p) => catalog.savePosition(approvePosition(p, approver, now)));
       return Response.json({
         ok: true,
         approvedQuestions: qToApprove.length,
