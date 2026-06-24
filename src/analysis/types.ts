@@ -17,6 +17,17 @@ export interface PolicySignal {
   readonly note: string;
 }
 
+export type CommentInfluenceEffect = "reinforces_answer" | "nuances_answer" | "adds_priority" | "signals_tension" | "unclear";
+
+export interface CommentInfluence {
+  /** Frågan kommentaren skrevs på. Saknas för övergripande kommentar. */
+  readonly sourceQuestionId?: string;
+  /** Frågor som AI-tolkningen kopplade kommentaren till. */
+  readonly affectedQuestionIds: readonly string[];
+  readonly effect: CommentInfluenceEffect;
+  readonly note: string;
+}
+
 export interface CommentAnalysis {
   readonly summary: string;
   readonly themes: readonly string[];
@@ -24,6 +35,8 @@ export interface CommentAnalysis {
   /** Frågor (id) som kommentaren tycks beröra. */
   readonly relatedQuestionIds: readonly string[];
   readonly policySignals: readonly PolicySignal[];
+  /** Hur kommentarerna påverkade det additiva AI-lagret. Ändrar aldrig matchningssiffran. */
+  readonly commentInfluences: readonly CommentInfluence[];
   /** true = olämpligt/skadligt innehåll; ska inte visas eller vägas in. */
   readonly flagged: boolean;
   readonly flagReason: string;
@@ -48,7 +61,7 @@ export interface CommentAnalyzer {
 }
 
 /** Prompt-/schema-version att logga tillsammans med varje analys. */
-export const ANALYSIS_SCHEMA_VERSION = "1";
+export const ANALYSIS_SCHEMA_VERSION = "2";
 
 /** JSON Schema för Structured Outputs (alla fält required, additionalProperties:false). */
 export const COMMENT_ANALYSIS_SCHEMA = {
@@ -71,9 +84,26 @@ export const COMMENT_ANALYSIS_SCHEMA = {
         additionalProperties: false,
       },
     },
+    commentInfluences: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          sourceQuestionId: { type: "string" },
+          affectedQuestionIds: { type: "array", items: { type: "string" } },
+          effect: {
+            type: "string",
+            enum: ["reinforces_answer", "nuances_answer", "adds_priority", "signals_tension", "unclear"],
+          },
+          note: { type: "string" },
+        },
+        required: ["affectedQuestionIds", "effect", "note"],
+        additionalProperties: false,
+      },
+    },
     flagged: { type: "boolean" },
     flagReason: { type: "string" },
   },
-  required: ["summary", "themes", "sentiment", "relatedQuestionIds", "policySignals", "flagged", "flagReason"],
+  required: ["summary", "themes", "sentiment", "relatedQuestionIds", "policySignals", "commentInfluences", "flagged", "flagReason"],
   additionalProperties: false,
 } as const;

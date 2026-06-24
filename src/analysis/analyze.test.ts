@@ -22,6 +22,7 @@ const baseAnalysis: CommentAnalysis = {
   sentiment: "neutral",
   relatedQuestionIds: ["q1"],
   policySignals: [{ dimension: "economic", leaning: "right", note: "n" }],
+  commentInfluences: [{ sourceQuestionId: "q1", affectedQuestionIds: ["q1"], effect: "adds_priority", note: "Skatt lyfts som särskilt viktig." }],
   flagged: false,
   flagReason: "",
 };
