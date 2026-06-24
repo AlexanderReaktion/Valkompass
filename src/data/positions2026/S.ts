@@ -1,10 +1,10 @@
 import type { PositionRow } from "./types.ts";
 
 const rows: PositionRow[] = [
-  { q: "skatt_arbete", v: 0, l: "SVT: S avvisar nytt jobbskatteavdrag", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-sa-mycket-sanks-din-skatt-nasta-ar" },
+  { q: "skatt_arbete", v: -1, l: "Socialdemokraterna: Skatter / budgetmotion 2026 (har röstat mot varje jobbskatteavdrag)", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/skatter" },
   { q: "hoginkomstskatt", v: -2, l: "SVT: Damberg (S) – höjda skatter för de som tjänar mest", u: "https://www.svt.se/nyheter/inrikes/mikael-damberg-s-hojda-skatter-for-de-som-tjanar-mest" },
   { q: "bolagsskatt", v: -1, l: "Socialdemokraterna: Skatter", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/skatter" },
-  { q: "kapitalskatt", v: -2, l: "Börskollen: S vill höja ISK-skatten för rika", u: "https://www.borskollen.se/nyheter/27/s-vill-se-hojd-isk-skatten-for-rika-men-avfardar-fastighetsskatt" },
+  { q: "kapitalskatt", v: -1, l: "Börskollen: S vill höja ISK-skatten för rika men avfärdar fastighetsskatt", u: "https://www.borskollen.se/nyheter/27/s-vill-se-hojd-isk-skatten-for-rika-men-avfardar-fastighetsskatt" },
   { q: "offentliga_utgifter", v: -2, l: "Socialdemokraternas budgetmotion 2026", u: "https://www.socialdemokraterna.se/nyheter/nyheter/2025-10-06-socialdemokraternas-forslag-till-budget-for-2026---ny-riktning-for-sverige" },
   { q: "bensinskatt", v: 1, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "rutrot", v: -1, l: "Byggahus: Höjt ROT-avdrag i regeringens budget", u: "https://byggahus.se/hojt-rot-avdrag-i-fokus-i-regeringens-varbudget" },
@@ -13,14 +13,15 @@ const rows: PositionRow[] = [
   { q: "offentlig_ansvar", v: -2, l: "Utkast Socialdemokraternas partiprogram 2025", u: "https://www.socialdemokraterna.se/vart-parti/ny-riktning-for-sverige-2030/ett-nytt-partiprogram" },
   { q: "arbetsratt", v: -2, l: "Socialdemokraterna: Arbetsrätt", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/arbetsratt" },
   { q: "akassa", v: -2, l: "Socialdemokraterna: A-kassa", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/a-kassa" },
-  { q: "forsorjningsstod", v: 0, l: "Socialdemokraterna: Ekonomiskt bistånd", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/ekonomiskt-bistand" },
-  { q: "pension", v: -1, l: "Socialdemokraterna: Pension", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/pension" },
+  { q: "forsorjningsstod", v: 1, l: "SVT Valkompass 2026 – Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
+  { q: "pension", v: -2, l: "Socialdemokraterna – Pension (höja inbetalningarna till 18,5%, mål 70% av slutlönen)", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/pension" },
   { q: "arbetskraftsinvandring", v: 2, l: "Motion 2025/26:1428 Begränsad arbetskraftsinvandring (S)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/begransad-arbetskraftsinvandring-med_hd021428/" },
-  { q: "asyl_farre", v: 2, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
+  { q: "asyl_farre", v: 1, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "flykting_oppen", v: 1, l: "Socialdemokraterna: Migration och flyktingpolitik", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/migration-och-flyktingpolitik" },
   { q: "medborgarskap", v: 2, l: "Motion 2025/26:3990 skärpta medborgarskapskrav (S)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/med-anledning-av-prop-202526175-skarpta-krav_hd023990/" },
   { q: "anpassning", v: 1, l: "Socialdemokraterna: Integration", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/integration" },
-  { q: "atervandring", v: 1, l: "Socialdemokraterna: Migration och flyktingpolitik", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/migration-och-flyktingpolitik" },
+  { q: "atervandring", v: -1, l: "SVT/Sveriges Radio + S-debatt: höjt återvandringsbidrag får kritik", u: "https://www.svt.se/nyheter/inrikes/hojt-atervandringsbidrag-mest-populart-bland-utrikesfodda" },
+  // TODO(expertgranskning): kunde ej kallverifieras automatiskt — Kept at +1 but verified=false: the proposed source is the GOVERNMENT press release, and S is in OPPOSITION, so it does not establish 
   { q: "anhorig", v: 1, l: "Regeringen: Höjt försörjningskrav vid anhöriginvandring", u: "https://www.regeringen.se/pressmeddelanden/2025/12/hojt-forsorjningskrav-vid-anhoriginvandring-foreslas/" },
   { q: "straff", v: 2, l: "Motion 2025/26:3586 Rättsväsendet (S)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/utgiftsomrade-4-rattsvasendet_hd023586/html/" },
   { q: "polisbefogenheter", v: 2, l: "Socialdemokraterna: Polisen", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/polisen" },
@@ -31,8 +32,8 @@ const rows: PositionRow[] = [
   { q: "klimat_prioritet", v: 0, l: "Naturskyddsföreningen: Granskning av S klimat- och miljöpolitik", u: "https://www.naturskyddsforeningen.se/artiklar/granskning-socialdemokraternas-klimat-och-miljopolitik/" },
   { q: "karnkraft", v: 1, l: "SVT: S öppnar för statligt stöd till ny kärnkraft", u: "https://www.svt.se/nyheter/inrikes/socialdemokraterna-oppnar-for-statligt-stod-till-ny-karnkraft" },
   { q: "vindkraft", v: -2, l: "Socialdemokraterna: Vindkraft", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/vindkraft" },
-  { q: "miljoskatter", v: -1, l: "Naturskyddsföreningen: Oppositionens skuggmiljöbudgetar 2026", u: "https://www.naturskyddsforeningen.se/artiklar/oppositionens-skuggmiljobudgetar-2026/" },
-  { q: "reduktionsplikt", v: -1, l: "Naturskyddsföreningen: Oppositionens skuggmiljöbudgetar 2025", u: "https://www.naturskyddsforeningen.se/artiklar/oppositionens-skuggmiljobudgetar-2025/" },
+  { q: "miljoskatter", v: 1, l: "Naturskyddsföreningen: Oppositionens skuggmiljöbudgetar 2026 (S föreslår inga ändringar, accepterar regeringens stora drivmedelsskattesänkningar)", u: "https://www.naturskyddsforeningen.se/artiklar/oppositionens-skuggmiljobudgetar-2026/" },
+  { q: "reduktionsplikt", v: 1, l: "GP/Vi Bilägare: 'Även Socialdemokraterna vill sänka reduktionsplikten' – sänka diesel från 30,5% till 19% via Sverigebränslet, ~4 kr lägre dieselpris", u: "https://www.gp.se/nyheter/sverige/s-vill-ha-19-procent-biobr%C3%A4nsle-i-diesel-1.113066028" },
   { q: "naturskydd", v: 0, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "vard_resurser", v: -2, l: "Socialdemokraternas budgetmotion 2026", u: "https://www.socialdemokraterna.se/nyheter/nyheter/2025-10-06-socialdemokraternas-forslag-till-budget-for-2026---ny-riktning-for-sverige" },
   { q: "friskolor", v: -1, l: "Socialdemokraterna: Friskolor", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/friskolor" },
@@ -42,12 +43,10 @@ const rows: PositionRow[] = [
   { q: "hbtqi", v: -2, l: "Socialdemokraterna: HBTQ+frågor", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/hbtq-fragor" },
   { q: "nato", v: 2, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "forsvarsanslag", v: 2, l: "S vill rusta Sverige med en Totalförsvarsfond", u: "https://www.socialdemokraterna.se/nyheter/nyheter/2025-03-13-s-vill-snabbt-rusta-sverige-med-en-totalforsvarsfond" },
-  { q: "eu_makt", v: 0, l: "S i Europaparlamentet", u: "https://sieuropaparlamentet.socialdemokraterna.se/" },
+  { q: "eu_makt", v: -1, l: "Socialdemokraterna – S vill se EU-lån för att stärka Europa / EU-politik", u: "https://www.socialdemokraterna.se/nyheter/nyheter/2025-02-20-s-vill-se-eu-lan-for-att-snabbt-starka-och-rusta-europa" },
   { q: "euro", v: -1, l: "Europaportalen: S öppnar för en svensk eurodebatt", u: "https://www.europaportalen.se/2024/05/socialdemokraterna-oppnar-en-svensk-eurodebatt" },
   { q: "public_service", v: -2, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
-  // TODO(expertgranskning): v=2 placerar S bland monarkisterna. Frågan "Monarkin bör avskaffas" och S:s
-  // citerade partiprogram 2025 kan tala för republik (negativt värde). Bekräfta tecknet mot programmet innan publicering.
-  { q: "monarki", v: 2, l: "Socialdemokraterna: Ett nytt partiprogram (kongress 2025)", u: "https://www.socialdemokraterna.se/vart-parti/ny-riktning-for-sverige-2030/ett-nytt-partiprogram" },
+  { q: "monarki", v: -2, l: "Socialdemokraterna – Ett nytt partiprogram (kongress 2025)", u: "https://www.socialdemokraterna.se/vart-parti/ny-riktning-for-sverige-2030/ett-nytt-partiprogram" },
 ];
 
 export default rows;
