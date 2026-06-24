@@ -60,10 +60,11 @@ function collectContributions(
   for (const q of questions) {
     const answer = answers[q.id];
     if (!answer || answer.value === null) continue; // vet ej / obesvarad → parvis exkludering
+    if (!Number.isFinite(answer.value)) continue; // NaN/Infinity → skydda mot ogiltigt svar
     const partyValue = party.positions[q.id];
     if (partyValue === undefined) continue; // partiet saknar position på frågan
     const weight = answer.weight ?? 1;
-    if (weight <= 0) continue; // vikt 0 = exkludera
+    if (!(weight > 0)) continue; // exkludera vikt 0, negativ ELLER NaN (vänd villkor för NaN-skydd)
     out.push({
       questionId: q.id,
       user: clamp(answer.value, scale),
@@ -91,15 +92,23 @@ function similarity(method: MatchMethod, contribs: Contribution[], scale: Scale)
   };
 
   const directional = (): number => {
-    // Belönar att väljare och parti ligger på samma sida om mitten.
+    // Riktad likhet i [0,1]: monoton i avståndet OCH självmatch == 1 för VARJE punkt på skalan
+    // (inte bara vid ytterlägena). Grund: sim = 1 - |u-p|/range. Extra straff när väljare och
+    // parti ligger på OLIKA sidor om mitten (sign(u) != sign(p)) — oenighet tvärs över centrum
+    // bestraffas hårdare än rent avstånd. En centrist (u=0) får därmed också särskiljande kraft.
     const mid = midpoint(scale);
     const half = r / 2;
+    const sign = (x: number): number => (x > 0 ? 1 : x < 0 ? -1 : 0);
     const wMeanDir =
       contribs.reduce((s, c) => {
         const u = c.user - mid;
         const p = c.party - mid;
-        const norm = (u * p) / (half * half); // [-1, 1]
-        return s + c.weight * ((norm + 1) / 2); // → [0, 1]
+        const base = 1 - Math.abs(c.user - c.party) / r; // [0, 1], monoton avtagande i avstånd
+        // Straffa endast när BÅDA ligger på var sin sida om mitten (ingen av dem i mitten).
+        const opposite = sign(u) !== 0 && sign(p) !== 0 && sign(u) !== sign(p);
+        const penalty = opposite ? Math.min(Math.abs(u), Math.abs(p)) / half : 0;
+        const sim = Math.max(0, Math.min(1, base - penalty));
+        return s + c.weight * sim;
       }, 0) / totalW;
     return wMeanDir;
   };
