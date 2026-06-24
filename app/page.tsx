@@ -14,8 +14,8 @@ export default function Home() {
       </div>
 
       <div className="note">
-        Tidig prototyp. Frågor och partipositioner i demon är illustrativa platshållare,
-        inte färdiggranskat innehåll.
+        Tidig prototyp. Frågor och partipositioner är researchade utkast under expertgranskning,
+        inte slutgiltigt fastställt innehåll.
       </div>
 
       <p style={{ marginTop: 24 }}>
