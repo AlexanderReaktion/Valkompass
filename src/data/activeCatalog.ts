@@ -1,51 +1,112 @@
 /**
- * Den katalog som serveras i kompassen just nu.
+ * Aktiv katalog för kompassen.
  *
- * Pekar på den AI-researchade 2026-katalogen (45 frågor, 360 källbelagda
- * positioner). Positionerna är UTKAST under expertgranskning i /admin — när
- * en granskad katalog publiceras via admin-publish bör detta bytas till att
- * läsa store.getPublished(). Tills dess serveras 2026-utkastet.
+ * Runtime läser i första hand den senast publicerade katalogen från store.
+ * Finns ingen publicerad katalog faller appen tillbaka till det researchade
+ * 2026-utkastet, tydligt markerat i UI:t.
  */
 
-import type { PublishedCatalog } from "../catalog/types.ts";
+import type { PartyPosition, PublishedCatalog } from "../catalog/types.ts";
 import type { Party, Scale } from "../matching/types.ts";
+import { getStores } from "../store/index.ts";
 import { catalog2026Positions, catalog2026Questions } from "./catalog2026.ts";
 
+export const ACTIVE_ELECTION = "riksdagsval-2026";
 export const activeScale: Scale = { min: -2, max: 2 };
 
-const NAMES: Record<string, string> = {
-  V: "Vänsterpartiet",
-  S: "Socialdemokraterna",
-  MP: "Miljöpartiet",
-  C: "Centerpartiet",
-  L: "Liberalerna",
-  KD: "Kristdemokraterna",
-  M: "Moderaterna",
-  SD: "Sverigedemokraterna",
-};
+export const partyMeta = [
+  { id: "V", name: "Vänsterpartiet" },
+  { id: "S", name: "Socialdemokraterna" },
+  { id: "MP", name: "Miljöpartiet" },
+  { id: "C", name: "Centerpartiet" },
+  { id: "L", name: "Liberalerna" },
+  { id: "KD", name: "Kristdemokraterna" },
+  { id: "M", name: "Moderaterna" },
+  { id: "SD", name: "Sverigedemokraterna" },
+] as const;
+
+const NAMES: Record<string, string> = Object.fromEntries(partyMeta.map((p) => [p.id, p.name]));
 
 export const activeCatalog: PublishedCatalog = {
   version: 1,
-  election: "riksdagsval-2026",
+  election: ACTIVE_ELECTION,
   publishedAt: "2026-06-17T00:00:00.000Z",
   scale: activeScale,
   questions: catalog2026Questions,
 };
 
-export const activeParties: Party[] = Object.keys(NAMES).map((id) => ({
-  id,
-  name: NAMES[id]!,
-  positions: Object.fromEntries(
-    catalog2026Positions.filter((p) => p.partyId === id).map((p) => [p.questionId, p.value]),
-  ),
-}));
+function positionsForCatalog(
+  catalog: PublishedCatalog,
+  positions: readonly PartyPosition[],
+  requireApproved: boolean,
+): PartyPosition[] {
+  const questionIds = new Set(catalog.questions.map((q) => q.id));
+  return positions.filter((p) => questionIds.has(p.questionId) && (!requireApproved || p.status === "approved"));
+}
+
+export function buildParties(positions: readonly PartyPosition[]): Party[] {
+  return partyMeta.map((p) => ({
+    id: p.id,
+    name: p.name,
+    positions: Object.fromEntries(
+      positions.filter((pos) => pos.partyId === p.id).map((pos) => [pos.questionId, pos.value]),
+    ),
+  }));
+}
+
+export const activeParties: Party[] = buildParties(catalog2026Positions);
 
 /** Källa per (partyId::questionId) för transparens på resultatsidan. */
-export const activeSources: Record<string, { label: string; url: string }> = Object.fromEntries(
-  catalog2026Positions.flatMap((p) => {
+export function buildSources(positions: readonly PartyPosition[]): Record<string, { label: string; url: string }> {
+  return Object.fromEntries(positions.flatMap((p) => {
     const c = p.citations[0];
     return c && c.url ? [[`${p.partyId}::${p.questionId}`, { label: c.label, url: c.url }] as const] : [];
-  }),
-);
+  }));
+}
+
+export const activeSources: Record<string, { label: string; url: string }> = buildSources(catalog2026Positions);
+
+export interface ActiveDataset {
+  readonly catalog: PublishedCatalog;
+  readonly parties: Party[];
+  readonly scale: Scale;
+  readonly sources: Record<string, { label: string; url: string }>;
+  readonly isPublished: boolean;
+}
+
+export async function loadActiveDataset(election: string = ACTIVE_ELECTION): Promise<ActiveDataset> {
+  const stores = await getStores();
+  const published = await stores.catalog.getPublished(election);
+  if (published) {
+    const positions = positionsForCatalog(published, await stores.catalog.listPositions(), true);
+    return {
+      catalog: published,
+      parties: buildParties(positions),
+      scale: published.scale,
+      sources: buildSources(positions),
+      isPublished: true,
+    };
+  }
+
+  // Ingen publicerad katalog finns – vi skulle falla tillbaka till det OGRANSKADE
+  // AI-utkastet för 2026. I produktion (Vercel/production) får detta inte ske utan
+  // ett uttryckligt opt-in, så att opublicerade positioner aldrig serveras publikt.
+  const isProd = Boolean(process.env.VERCEL) || process.env.NODE_ENV === "production";
+  if (isProd && process.env.ALLOW_DRAFT_CATALOG !== "true") {
+    throw new Error(
+      "Ingen publicerad katalog finns. I produktion vägrar appen att servera det ogranskade " +
+        "2026-utkastet. Publicera och godkänn katalogen i /admin, eller sätt ALLOW_DRAFT_CATALOG=true " +
+        "för staging/test.",
+    );
+  }
+
+  return {
+    catalog: activeCatalog,
+    parties: activeParties,
+    scale: activeScale,
+    sources: activeSources,
+    isPublished: false,
+  };
+}
 
 export const partyNames = NAMES;

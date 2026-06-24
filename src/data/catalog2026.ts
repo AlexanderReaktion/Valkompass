@@ -1,5 +1,6 @@
 /**
- * AI-RESEARCHAT UTKAST — frågekatalog (45 frågor) + partipositioner (360) inför
+ * AI-RESEARCHAT UTKAST — frågebank (45 sakfrågegrupper, 60 formuleringar)
+ * + partipositioner (480) inför
  * riksdagsvalet 2026.
  *
  * ⚠️ Utkast (status: draft). Positionerna är framtagna av per-parti-research mot
@@ -35,6 +36,7 @@ interface QDef {
   topic: string;
   text: string;
   rationale: string;
+  positionSourceId?: string;
 }
 
 const QDEFS: QDef[] = [
@@ -88,7 +90,30 @@ const QDEFS: QDef[] = [
   { id: "euro", kind: "dynamic", polarity: 1, topic: "EU", text: "Sverige bör införa euron.", rationale: "Valutafråga." },
 ];
 
-export const catalog2026Questions: CatalogQuestion[] = QDEFS.map((d) =>
+const VARIANT_QDEFS: QDef[] = [
+  { id: "skatt_arbete_alt", positionSourceId: "skatt_arbete", kind: "structural", dimension: "economic", polarity: 1, topic: "skatter", text: "Inkomstskatten för löntagare bör bli lägre.", rationale: "Alternativ neutral formulering av arbetsbeskattning." },
+  { id: "hoginkomstskatt_alt", positionSourceId: "hoginkomstskatt", kind: "structural", dimension: "economic", polarity: -1, topic: "skatter", text: "Skattesystemet bör omfördela mer från höga inkomster.", rationale: "Alternativ formulering av progressiv beskattning." },
+  { id: "offentliga_utgifter_alt", positionSourceId: "offentliga_utgifter", kind: "structural", dimension: "economic", polarity: -1, topic: "ekonomi", text: "Staten bör finansiera mer välfärd även om skattetrycket ökar.", rationale: "Alternativ formulering av statens storlek och finansiering." },
+  { id: "vinst_valfard_alt", positionSourceId: "vinst_valfard", kind: "structural", dimension: "economic", polarity: 1, topic: "välfärd", text: "Skattefinansierad vård och skola bör kunna drivas med vinst.", rationale: "Alternativ formulering av vinstfrågan." },
+  { id: "arbetsratt_alt", positionSourceId: "arbetsratt", kind: "structural", dimension: "economic", polarity: 1, topic: "arbetsmarknad", text: "Reglerna på arbetsmarknaden bör göra det lättare för arbetsgivare att säga upp personal.", rationale: "Alternativ formulering av arbetsrättens flexibilitet." },
+  { id: "asyl_farre_alt", positionSourceId: "asyl_farre", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "migration", text: "Asylmottagandet bör vara mer restriktivt än i dag.", rationale: "Alternativ formulering av restriktiv asylpolitik." },
+  { id: "flykting_oppen_alt", positionSourceId: "flykting_oppen", kind: "dynamic", dimension: "galtan", polarity: -1, topic: "migration", text: "Sverige bör lägga större vikt vid skyddsskäl än vid att minska flyktingmottagandet.", rationale: "Alternativ formulering av öppen flyktingpolitik." },
+  { id: "straff_alt", positionSourceId: "straff", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "brottslighet", text: "Längre fängelsestraff bör användas oftare vid grov brottslighet.", rationale: "Alternativ formulering av straffskärpningar." },
+  { id: "forebyggande_alt", positionSourceId: "forebyggande", kind: "dynamic", dimension: "galtan", polarity: -1, topic: "brottslighet", text: "Sociala förebyggande insatser bör prioriteras framför fler straffskärpningar.", rationale: "Alternativ formulering av förebyggande kriminalpolitik." },
+  { id: "klimat_prioritet_alt", positionSourceId: "klimat_prioritet", kind: "dynamic", dimension: "galtan", polarity: -1, topic: "klimat", text: "Klimatåtgärder bör genomföras även om de blir märkbara för hushåll och företag.", rationale: "Alternativ formulering av klimatets kostnadsavvägning." },
+  { id: "karnkraft_alt", positionSourceId: "karnkraft", kind: "dynamic", polarity: 1, topic: "energi", text: "Ny kärnkraft bör få statligt stöd för att byggas snabbare.", rationale: "Alternativ formulering av kärnkraftsutbyggnad." },
+  { id: "vindkraft_alt", positionSourceId: "vindkraft", kind: "dynamic", polarity: -1, topic: "energi", text: "Tillståndsprocesser bör förenklas så att mer vindkraft kan byggas.", rationale: "Alternativ formulering av vindkraftsutbyggnad." },
+  { id: "nato_alt", positionSourceId: "nato", kind: "dynamic", polarity: 1, topic: "försvar", text: "Sverige bör knyta sitt försvar ännu närmare NATO.", rationale: "Alternativ formulering av fördjupat NATO-samarbete." },
+  { id: "eu_makt_alt", positionSourceId: "eu_makt", kind: "structural", dimension: "galtan", polarity: -1, topic: "EU", text: "Fler beslut bör fattas gemensamt inom EU även om Sverige lämnar över mer makt.", rationale: "Alternativ formulering av EU-integration." },
+  { id: "public_service_alt", positionSourceId: "public_service", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "media", text: "Public service bör ha ett smalare uppdrag och mindre finansiering.", rationale: "Alternativ formulering av public service-frågan." },
+];
+
+const ALL_QDEFS = [...QDEFS, ...VARIANT_QDEFS];
+const POSITION_SOURCE_BY_QUESTION = new Map(
+  VARIANT_QDEFS.map((q) => [q.id, q.positionSourceId ?? q.id] as const),
+);
+
+export const catalog2026Questions: CatalogQuestion[] = ALL_QDEFS.map((d) =>
   createQuestion(
     { id: d.id, kind: d.kind, polarity: d.polarity, topic: d.topic, text: d.text, rationale: d.rationale, ...(d.dimension ? { dimension: d.dimension } : {}) },
     NOW,
@@ -98,7 +123,7 @@ export const catalog2026Questions: CatalogQuestion[] = QDEFS.map((d) =>
 const PARTY_ROWS: Record<string, PositionRow[]> = { V, S, MP, C, L, KD, M, SD };
 const clamp = (v: number) => Math.max(-2, Math.min(2, v));
 
-export const catalog2026Positions: PartyPosition[] = Object.entries(PARTY_ROWS).flatMap(([partyId, rows]) =>
+const basePositions: PartyPosition[] = Object.entries(PARTY_ROWS).flatMap(([partyId, rows]) =>
   rows.map((r) => ({
     questionId: r.q,
     partyId,
@@ -107,3 +132,14 @@ export const catalog2026Positions: PartyPosition[] = Object.entries(PARTY_ROWS).
     status: "draft" as const,
   })),
 );
+
+const basePositionByKey = new Map(basePositions.map((p) => [`${p.questionId}::${p.partyId}`, p]));
+const variantPositions: PartyPosition[] = VARIANT_QDEFS.flatMap((q) =>
+  Object.keys(PARTY_ROWS).map((partyId) => {
+    const source = basePositionByKey.get(`${POSITION_SOURCE_BY_QUESTION.get(q.id)}::${partyId}`);
+    if (!source) throw new Error(`Saknar basposition för variant ${q.id}/${partyId}`);
+    return { ...source, questionId: q.id };
+  }),
+);
+
+export const catalog2026Positions: PartyPosition[] = [...basePositions, ...variantPositions];

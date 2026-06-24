@@ -24,9 +24,17 @@ candidates.push({ label: "direct", cs: `postgresql://postgres:${password}@db.${r
 
 const { Client } = pg;
 
+// Samma TLS-villkor som appen: med DATABASE_CA_CERT verifieras servern (verify-full),
+// annars krypterad men overifierad anslutning + en varning.
+const caCert = process.env.DATABASE_CA_CERT;
+const ssl = caCert ? { ca: caCert, rejectUnauthorized: true } : { rejectUnauthorized: false };
+if (!caCert) {
+  console.warn("DATABASE_CA_CERT saknas — TLS-certvalidering är AVSTÄNGD. Sätt DATABASE_CA_CERT för verify-full.");
+}
+
 let working = null;
 for (const c of candidates) {
-  const client = new Client({ connectionString: c.cs, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 7000 });
+  const client = new Client({ connectionString: c.cs, ssl, connectionTimeoutMillis: 7000 });
   try {
     await client.connect();
     await client.query("select 1");

@@ -66,15 +66,74 @@ test("vikt 0 exkluderar frågan", () => {
 });
 
 test("hybrid ligger mellan cityblock och directional", () => {
+  // Väljare på icke-extremt läge (u=1) mot ett parti på MOTSATT sida (p=-1):
+  // riktad likhet straffas extra för centrum-passagen, så dir < cb och hybrid hamnar mellan.
   const a = ans({ q1: 1 });
-  const party: Party = { id: "X", name: "X", positions: { q1: 1 } };
+  const party: Party = { id: "X", name: "X", positions: { q1: -1 } };
   const cb = matchParty(party, questions, a, scale, "cityblock").percent!;
   const dir = matchParty(party, questions, a, scale, "directional").percent!;
   const hy = matchParty(party, questions, a, scale, "hybrid").percent!;
-  assert.equal(cb, 100); // |1-1| = 0
-  assert.equal(dir, 62.5); // (1*1/4 + 1)/2 = 0.625
-  assert.ok(hy < cb && hy > dir, `hybrid (${hy}) ska ligga mellan ${dir} och ${cb}`);
-  assert.equal(hy, 81.3); // (1 + 0.625)/2 = 0.8125
+  assert.equal(cb, 50); // 1 - |1-(-1)|/4 = 0.5
+  assert.equal(dir, 0); // base 0.5 - straff min(1,1)/2 = 0.5 → 0
+  assert.ok(hy > dir && hy < cb, `hybrid (${hy}) ska ligga mellan ${dir} och ${cb}`);
+  assert.equal(hy, 25); // (0.5 + 0)/2 = 0.25
+});
+
+test("hybrid: en moderat exakt match läser högt (nära 100 %)", () => {
+  // Centrist-nära exakt match (u=p=1) ska nu ge ~100 % i hybrid, inte straffas av riktningsmåttet.
+  const a = ans({ q1: 1 });
+  const exact: Party = { id: "X1", name: "Exakt", positions: { q1: 1 } };
+  assert.equal(matchParty(exact, questions, a, scale, "cityblock").percent, 100);
+  assert.equal(matchParty(exact, questions, a, scale, "directional").percent, 100);
+  assert.equal(matchParty(exact, questions, a, scale, "hybrid").percent, 100);
+});
+
+test("directional: självmatch == 100 % för VARJE skalläge (inte bara ytterlägen)", () => {
+  for (const v of [-2, -1, -0.5, 0, 0.5, 1, 2]) {
+    const a = ans({ q1: v });
+    const party: Party = { id: `S${v}`, name: "Själv", positions: { q1: v } };
+    const m = matchParty(party, questions, a, scale, "directional").percent;
+    assert.equal(m, 100, `självmatch på u=p=${v} ska vara 100 %, fick ${m}`);
+  }
+});
+
+test("directional: monotont icke-ökande när avståndet växer", () => {
+  // Fixerad väljare; partiet flyttas stegvis bort längs samma riktning → likheten får aldrig öka.
+  const u = 1;
+  const a = ans({ q1: u });
+  // Mot extremen på samma sida (+2) och tvärs över mitten (mot -2).
+  for (const direction of [1, -1] as const) {
+    const extreme = direction > 0 ? 2 : -2;
+    let prev = Infinity;
+    for (let t = 0; t <= 1.0001; t += 0.1) {
+      const p = u + (extreme - u) * t; // växande |u-p|
+      const party: Party = { id: "M", name: "M", positions: { q1: p } };
+      const sim = matchParty(party, questions, a, scale, "directional").percent!;
+      assert.ok(
+        sim <= prev + 1e-9,
+        `likheten ökade när avståndet växte (p=${p}, sim=${sim}, prev=${prev})`,
+      );
+      prev = sim;
+    }
+  }
+});
+
+test("hybrid: vid icke-extremt väljarläge rankas exakt-match-partiet strikt över alla andra", () => {
+  // Centrist-nära väljare (u=1) ska kunna särskilja: exakt match slår varje icke-matchande parti.
+  const a = ans({ q1: 1, q2: 1, q3: 1 });
+  const exact: Party = { id: "E", name: "Exakt", positions: { q1: 1, q2: 1, q3: 1 } };
+  const others: Party[] = [
+    { id: "O1", name: "Nära", positions: { q1: 1, q2: 1, q3: 0.5 } },
+    { id: "O2", name: "Mitten", positions: { q1: 0, q2: 0, q3: 0 } },
+    { id: "O3", name: "Motsatt", positions: { q1: -1, q2: -1, q3: -1 } },
+    { id: "O4", name: "Extrem", positions: { q1: 2, q2: 2, q3: 2 } },
+  ];
+  const exactPct = matchParty(exact, questions, a, scale, "hybrid").percent!;
+  assert.equal(exactPct, 100, "exakt match ska ge 100 %");
+  for (const o of others) {
+    const p = matchParty(o, questions, a, scale, "hybrid").percent!;
+    assert.ok(exactPct > p, `exakt (${exactPct}) ska ligga strikt över ${o.id} (${p})`);
+  }
 });
 
 test("euclidean straffar stora enskilda avvikelser hårdare än cityblock", () => {

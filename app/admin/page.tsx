@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { CatalogQuestion, PartyPosition } from "@/src/catalog/types.ts";
 
 interface CatalogData {
@@ -13,15 +13,7 @@ export default function AdminPage() {
   const [data, setData] = useState<CatalogData | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    try {
-      const t = sessionStorage.getItem("admin-token");
-      if (t) setToken(t);
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const [onlyDrafts, setOnlyDrafts] = useState(true);
 
   async function authed(path: string, init?: RequestInit) {
     const res = await fetch(path, {
@@ -35,10 +27,9 @@ export default function AdminPage() {
     setBusy(true);
     setMsg(null);
     try {
-      sessionStorage.setItem("admin-token", token);
       const res = await authed("/api/admin/catalog");
       if (!res.ok) {
-        setMsg(res.status === 403 ? "Fel admin-token." : "Kunde inte ladda.");
+        setMsg(res.status === 401 ? "Fel admin-token." : "Kunde inte ladda.");
         setData(null);
         return;
       }
@@ -78,6 +69,8 @@ export default function AdminPage() {
 
   const draftQ = data?.questions.filter((q) => q.status === "draft").length ?? 0;
   const draftP = data?.positions.filter((p) => p.status === "draft").length ?? 0;
+  const shownQuestions = (data?.questions ?? []).filter((q) => !onlyDrafts || q.status === "draft");
+  const shownPositions = (data?.positions ?? []).filter((p) => !onlyDrafts || p.status === "draft");
 
   return (
     <main className="container">
@@ -103,9 +96,16 @@ export default function AdminPage() {
             <button className="btn" type="button" onClick={() => act("/api/admin/seed", undefined, "Demo-utkast inlagda.")} disabled={busy}>
               Seed demo-utkast
             </button>
+            <button className="btn" type="button" onClick={() => act("/api/admin/approve", { kind: "all" }, "Alla utkast godkända.")} disabled={busy}>
+              Godkänn alla utkast
+            </button>
             <button className="btn" type="button" onClick={() => act("/api/admin/publish", { version: 1 })} disabled={busy}>
               Validera &amp; publicera
             </button>
+            <label className="muted" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+              <input type="checkbox" checked={onlyDrafts} onChange={(e) => setOnlyDrafts(e.target.checked)} />
+              Visa endast utkast
+            </label>
           </>
         )}
       </div>
@@ -118,9 +118,10 @@ export default function AdminPage() {
             {data.questions.length} frågor ({draftQ} utkast) · {data.positions.length} positioner ({draftP} utkast)
           </p>
 
-          <h2>Frågor</h2>
+          <h2>Frågor{onlyDrafts ? " (endast utkast)" : ""}</h2>
           {data.questions.length === 0 && <p className="muted">Inga frågor. Klicka &quot;Seed demo-utkast&quot;.</p>}
-          {data.questions.map((q) => (
+          {data.questions.length > 0 && shownQuestions.length === 0 && <p className="muted">Inga utkast kvar — alla frågor godkända.</p>}
+          {shownQuestions.map((q) => (
             <div className="question" key={q.id}>
               <div className="topic">
                 {q.id} · {q.topic} · {q.dimension ?? "ingen axel"} · pol {q.polarity}{" "}
@@ -136,8 +137,9 @@ export default function AdminPage() {
             </div>
           ))}
 
-          <h2>Partipositioner</h2>
-          {data.positions.map((p) => (
+          <h2>Partipositioner{onlyDrafts ? " (endast utkast)" : ""}</h2>
+          {data.positions.length > 0 && shownPositions.length === 0 && <p className="muted">Inga utkast kvar — alla positioner godkända.</p>}
+          {shownPositions.map((p) => (
             <div className="question" key={`${p.questionId}::${p.partyId}`}>
               <div className="topic">
                 {p.questionId} · {p.partyId} · värde {p.value} · {p.citations.length} citat{" "}

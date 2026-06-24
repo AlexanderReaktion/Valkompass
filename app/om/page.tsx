@@ -38,13 +38,17 @@ export default function OmPage() {
         Frågorna formuleras neutralt och konkret för att dämpa partiledtråd (att man svarar som
         &quot;sitt&quot; parti i stället för efter sakfrågan). Partiernas positioner ska beläggas mot
         partiprogram och faktiska riksdagsvoteringar och granskas av människa innan publicering.
+        Testet använder ett balanserat urval ur en större frågebank. Flera formuleringar kan höra till
+        samma sakfrågegrupp, men bara en av dem tas med i en körning. Därför kan du göra en ny variant
+        och jämföra om resultatet ligger kvar ungefär på samma plats.
       </p>
 
       <h2>AI-användning</h2>
       <p>
         Om du skriver en fritextkommentar tolkas den av en AI-modell som ett separat, tydligt märkt
         lager – teman, ton och kopplingar. Detta lager ändrar aldrig matchningssiffran. AI:n
-        rekommenderar aldrig ett parti.
+        rekommenderar aldrig ett parti. Resultatet visar också hur kommentarerna påverkade AI-tolkningen,
+        till exempel om de förstärkte ett skalsvar, nyanserade det eller visade en spänning.
       </p>
 
       <h2>Begränsningar</h2>

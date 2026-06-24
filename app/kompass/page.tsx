@@ -1,8 +1,17 @@
-import { activeCatalog, activeParties, activeScale, activeSources } from "@/src/data/activeCatalog.ts";
+import { loadActiveDataset } from "@/src/data/activeCatalog.ts";
 import Kompass from "./Kompass.tsx";
 
-export default function KompassPage() {
+export const dynamic = "force-dynamic";
+
+export default async function KompassPage() {
+  const dataset = await loadActiveDataset();
   return (
-    <Kompass catalog={activeCatalog} parties={activeParties} scale={activeScale} sources={activeSources} />
+    <Kompass
+      catalog={dataset.catalog}
+      parties={dataset.parties}
+      scale={dataset.scale}
+      sources={dataset.sources}
+      isPublished={dataset.isPublished}
+    />
   );
 }

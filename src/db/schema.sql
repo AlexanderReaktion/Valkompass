@@ -66,8 +66,13 @@ CREATE TABLE IF NOT EXISTS results (
   method           text NOT NULL,
   canonical_answers jsonb NOT NULL,
   ranking          jsonb NOT NULL,
-  created_at       timestamptz NOT NULL
+  created_at       timestamptz NOT NULL,
+  delete_after     timestamptz NOT NULL          -- gallras tillsammans med ev. fritext
 );
+ALTER TABLE results ADD COLUMN IF NOT EXISTS delete_after timestamptz;
+UPDATE results SET delete_after = '2026-09-13T23:59:59.999Z' WHERE delete_after IS NULL;
+ALTER TABLE results ALTER COLUMN delete_after SET NOT NULL;
+CREATE INDEX IF NOT EXISTS results_delete_after_idx ON results (delete_after);
 
 -- Fritext: känsliga art. 9-data. Samtyckeskrav + auto-gallring.
 CREATE TABLE IF NOT EXISTS comments (
@@ -93,3 +98,28 @@ CREATE INDEX IF NOT EXISTS consent_session_idx ON consent_log (session_id, type,
 
 -- Gallringsjobb (kör t.ex. dagligen via cron):
 --   DELETE FROM comments WHERE delete_after <= now();
+--
+-- Försvar på djupet: även om app-cronen (Vercel /api/cron/purge) skulle utebli
+-- raderar databasen själv utgångna rader. Kräver pg_cron (Supabase: aktivera
+-- under Database -> Extensions). Avkommentera för att aktivera skyddsnätet:
+--
+--   CREATE EXTENSION IF NOT EXISTS pg_cron;
+--   SELECT cron.schedule(
+--     'valkompass-purge-comments', '15 3 * * *',
+--     $$DELETE FROM comments WHERE delete_after <= now()$$);
+--   SELECT cron.schedule(
+--     'valkompass-purge-results', '20 3 * * *',
+--     $$DELETE FROM results WHERE delete_after <= now()$$);
+
+-- ---------- RLS: lås Supabase auto-API:t ----------
+-- Appen ansluter direkt som ägarrollen `postgres` (kringgår RLS). Supabase
+-- exponerar dessutom public-schemat via PostgREST/GraphQL med den publika
+-- anon-nyckeln. RLS utan policy nekar alla icke-privilegierade roller där,
+-- utan att påverka appens direktanslutning. Idempotent.
+ALTER TABLE catalog_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE questions        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE party_positions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE doc_chunks       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE results          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comments         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE consent_log      ENABLE ROW LEVEL SECURITY;

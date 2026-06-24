@@ -4,13 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "description": "AI-driven valkompass inför riksdagsvalet 2026",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "npm@10.9.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "test": "node --test src/**/*.test.ts",
     "test:match": "node --test src/matching/engine.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",
@@ -19,11 +24,17 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
+  "overrides": {
+    "postcss": "^8.5.15"
+  },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/node": "^25.9.3",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^16.2.9",
     "typescript": "^6.0.3"
   }
 }

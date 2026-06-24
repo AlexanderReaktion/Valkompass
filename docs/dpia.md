@@ -24,7 +24,8 @@ icke-avgörande lager, samt (c) i aggregerad/anonymiserad form analyserar vad v�
 **Registrerade.** Besökare/väljare som frivilligt använder tjänsten.
 
 **Mottagare / biträden.** Anthropic (AI-analys av pseudonymiserad fritext), hostingleverantör
-(Vercel), databasleverantör (Postgres i EU). Personuppgiftsbiträdesavtal krävs med samtliga.
+(Vercel), databasleverantör (Postgres i EU), Upstash (Redis för rate limiting/budget-spärr,
+EU-region). Personuppgiftsbiträdesavtal (DPA) krävs med samtliga.
 
 **Tredjelandsöverföring.** Fritext skickas pseudonymiserad till Anthropic, vilket kan innebära
 överföring till USA. Hanteras via DPF/standardavtalsklausuler + ZDR; överväg EU-residens (Bedrock
@@ -39,7 +40,9 @@ Frankfurt).
   intresse är **otillräckligt** för art. 9-data. Samtycket är separat, aktivt, dokumenterat och
   återkalleligt.
 - **Dataminimering:** ingen identifierare kopplas till svaren; endast pseudonymiserad fritext skickas
-  till AI; ingen IP/e-post lagras; inga onödiga loggar av prompttext.
+  till AI; e-post lagras inte. IP-adress lagras inte beständigt — den används endast transient och i
+  **hashad** form som nyckel för rate limiting (kort TTL, ~70 s, i Upstash) och kopplas aldrig till
+  svar/fritext; inga onödiga loggar av prompttext.
 - **Ändamålsbegränsning:** uppgifterna används bara för matchning, tolkning och aggregerad analys.
 
 ## 3. Riskbedömning
@@ -58,7 +61,8 @@ Frankfurt).
 Tekniska och organisatoriska skyddsåtgärder (implementerade i koden där inget annat anges):
 - Identitet skild från innehåll; pseudonymt session-UUID.
 - Uttryckligt, separat art. 9-samtycke innan fritext behandlas/lagras; samtyckeslogg.
-- Automatisk radering efter valdagen; dataminimering; ingen IP/identifierare.
+- Automatisk radering efter valdagen; dataminimering; ingen beständig IP-lagring (endast transient,
+  hashad IP med kort TTL för rate limiting).
 - Endast pseudonymiserad text till Anthropic; eftersträva ZDR + DPA; spend limit.
 - AI-genererad text märks tydligt; AI ger inga röstrekommendationer; matchningssiffran är
   deterministisk och förklarbar.

@@ -29,9 +29,8 @@ innehåll eller juridisk granskning:
    och `UPSTASH_REDIS_REST_TOKEN`. Annars delas inte räknare mellan Vercel-instanser.
 3. **Anthropic.** Sätt **spend limit** i Console (hård kostnadsspärr). Teckna **DPA** och begär
    **Zero Data Retention**. Verifiera DPF-status. Överväg EU-residens (Bedrock Frankfurt).
-4. **Innehåll (blockerar publik lansering).** Ersätt `src/data/demoCatalog.ts` med riktiga, neutralt
-   formulerade frågor och **researchade, källbelagda partipositioner** (RAG-pipeline + mänskligt
-   godkännande). Publicera inte påhittade partiståndpunkter.
+4. **Innehåll (blockerar publik lansering).** Expertgranska och godkänn 2026-utkastet i `/admin`
+   innan det används publikt. Publicera inte ogranskade eller påhittade partiståndpunkter.
 5. **Juridik.** Genomför och dokumentera en **DPIA**. Fyll i personuppgiftsansvarig i
    `app/integritet/page.tsx` och låt jurist granska. Utred AI Act-klassningen (designa som
    "informera/jämföra", inte "påverka röstning").
@@ -42,5 +41,5 @@ innehåll eller juridisk granskning:
 ## Säkerhet
 
 - API-nyckeln är **server-side only** och anropas bara i API-routes. Aldrig i klientkod.
-- Fritextkommentarer = känsliga art. 9-data: lagras endast med uttryckligt samtycke, pseudonymiserat,
-  och gallras automatiskt efter valdagen.
+- Fritextkommentarer och skalsvar i AI-analysen = känsliga art. 9-data: lagras endast med uttryckligt
+  samtycke, pseudonymiserat, och gallras automatiskt efter valdagen.
