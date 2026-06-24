@@ -45,7 +45,7 @@ const QDEFS: QDef[] = [
   { id: "hoginkomstskatt", kind: "structural", dimension: "economic", polarity: -1, topic: "skatter", text: "Höginkomsttagare bör betala mer i skatt.", rationale: "Omvänt formulerad; skiljer vänster/höger tydligt." },
   { id: "bolagsskatt", kind: "structural", dimension: "economic", polarity: 1, topic: "företag", text: "Bolagsskatten bör sänkas.", rationale: "Synen på företagande och skatt." },
   { id: "kapitalskatt", kind: "structural", dimension: "economic", polarity: -1, topic: "skatter", text: "Skatten på kapital och stora förmögenheter bör höjas.", rationale: "Fördelning kapital vs arbete." },
-  { id: "offentliga_utgifter", kind: "structural", dimension: "economic", polarity: -1, topic: "ekonomi", text: "Offentliga utgifter bör öka även om det kräver höjda skatter.", rationale: "Statens storlek." },
+  { id: "offentliga_utgifter", kind: "structural", dimension: "economic", polarity: -1, topic: "ekonomi", text: "Den offentliga välfärden bör byggas ut även om det kräver höjda skatter.", rationale: "Statens storlek." },
   { id: "rutrot", kind: "dynamic", dimension: "economic", polarity: 1, topic: "skatter", text: "RUT- och ROT-avdragen bör utökas.", rationale: "Aktuell skattefråga." },
   { id: "vinst_valfard", kind: "structural", dimension: "economic", polarity: 1, topic: "välfärd", text: "Privata företag bör få göra vinst på skattefinansierad skola och vård.", rationale: "Vinster i välfärden – tydlig skiljelinje." },
   { id: "offentlig_ansvar", kind: "structural", dimension: "economic", polarity: -1, topic: "välfärd", text: "Offentliga utförare bör ta ett större ansvar för välfärden än privata.", rationale: "Välfärdens organisering." },
