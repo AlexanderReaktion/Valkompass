@@ -3,11 +3,14 @@ import { getStores } from "@/src/store/index.ts";
 import { requireAdmin } from "@/src/server/admin.ts";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // bulk-godkännande gör många skrivningar
 
 interface Body {
-  kind?: "question" | "position";
+  kind?: "question" | "position" | "all";
   questionId?: string;
   partyId?: string;
+  /** Endast för kind:"all" — positioner som ska LÄMNAS som utkast (t.ex. osäkra celler). */
+  exclude?: { questionId: string; partyId: string }[];
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -26,6 +29,24 @@ export async function POST(request: Request): Promise<Response> {
   const approver = process.env.ADMIN_APPROVER ?? "admin";
 
   try {
+    if (body.kind === "all") {
+      const excl = new Set((body.exclude ?? []).map((e) => `${e.questionId}::${e.partyId}`));
+      const [questions, positions] = await Promise.all([catalog.listQuestions(), catalog.listPositions()]);
+      const qToApprove = questions.filter((q) => q.status === "draft");
+      const pToApprove = positions.filter(
+        (p) => p.status === "draft" && !excl.has(`${p.questionId}::${p.partyId}`),
+      );
+      await Promise.all([
+        ...qToApprove.map((q) => catalog.saveQuestion(approveQuestion(q, approver, now))),
+        ...pToApprove.map((p) => catalog.savePosition(approvePosition(p, approver, now))),
+      ]);
+      return Response.json({
+        ok: true,
+        approvedQuestions: qToApprove.length,
+        approvedPositions: pToApprove.length,
+        leftAsDraft: excl.size,
+      });
+    }
     if (body.kind === "question") {
       const q = (await catalog.listQuestions()).find((x) => x.id === body.questionId);
       if (!q) return Response.json({ error: "Okänd fråga." }, { status: 404 });

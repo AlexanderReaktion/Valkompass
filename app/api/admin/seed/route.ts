@@ -10,6 +10,7 @@ import { getStores } from "@/src/store/index.ts";
 import { requireAdmin } from "@/src/server/admin.ts";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // seedar 540 rader
 
 export async function POST(request: Request): Promise<Response> {
   const denied = requireAdmin(request);
@@ -21,14 +22,16 @@ export async function POST(request: Request): Promise<Response> {
 
   const { catalog } = await getStores();
 
-  for (const q of questions) {
-    const { approvedBy: _a, approvedAt: _b, ...rest } = q;
-    await catalog.saveQuestion({ ...rest, status: "draft" });
-  }
-  for (const p of positions) {
-    const { approvedBy: _a, approvedAt: _b, ...rest } = p;
-    await catalog.savePosition({ ...rest, status: "draft" });
-  }
+  await Promise.all([
+    ...questions.map((q) => {
+      const { approvedBy: _a, approvedAt: _b, ...rest } = q;
+      return catalog.saveQuestion({ ...rest, status: "draft" });
+    }),
+    ...positions.map((p) => {
+      const { approvedBy: _a, approvedAt: _b, ...rest } = p;
+      return catalog.savePosition({ ...rest, status: "draft" });
+    }),
+  ]);
 
   return Response.json({ ok: true, set: set ?? "demo", questions: questions.length, positions: positions.length });
 }
