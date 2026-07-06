@@ -4,13 +4,15 @@ import { type KeyboardEvent, type RefObject, useEffect, useMemo, useRef, useStat
 
 import { toMatchingQuestions } from "@/src/catalog/catalog.ts";
 import type { PublishedCatalog } from "@/src/catalog/types.ts";
-import { partyCoordinates, rankParties, userCoordinates } from "@/src/matching/engine.ts";
+import { matchPartyByDimension, partyCoordinates, rankParties, userCoordinates } from "@/src/matching/engine.ts";
 import { toCanonicalAnswers } from "@/src/matching/intake.ts";
 import type { DisplayAnswers } from "@/src/matching/intake.ts";
 import type { Coordinates, MatchMethod, Party, Scale } from "@/src/matching/types.ts";
 import type { CommentAnalysis } from "@/src/analysis/types.ts";
-import { TEST_MODES, buildTestPlan } from "@/src/kompass/testPlan.ts";
+import { TEST_MODES, buildTestPlan, uniqueGroupQuestions } from "@/src/kompass/testPlan.ts";
 import type { TestModeId } from "@/src/kompass/testPlan.ts";
+import { stanceLabel } from "@/src/kompass/stance.ts";
+import { RUN_STATE_VERSION, decodeRunState, encodeRunState } from "@/src/kompass/permalink.ts";
 
 interface Props {
   catalog: PublishedCatalog;
@@ -56,7 +58,7 @@ const PARTY_COLORS: Record<string, string> = {
   V: "#b00000", S: "#e8112d", MP: "#5bb030", C: "#1c9a4b", L: "#3aa3e0", KD: "#23356e", M: "#1d7fc4", SD: "#dab600",
 };
 const LEANING: Record<string, string> = { left: "vänster", right: "höger", gal: "frihetlig (GAL)", tan: "auktoritär (TAN)", unclear: "oklar" };
-const DIMLABEL: Record<string, string> = { economic: "Ekonomi", galtan: "Värderingar", none: "Övrigt" };
+const DIMLABEL: Record<string, string> = { economic: "Ekonomi", galtan: "Värderingar", none: "Övriga frågor" };
 const INFLUENCE: Record<string, string> = {
   reinforces_answer: "Förstärkte",
   nuances_answer: "Nyanserade",
@@ -64,6 +66,10 @@ const INFLUENCE: Record<string, string> = {
   signals_tension: "Visade spänning",
   unclear: "Oklar effekt",
 };
+
+/** Uppviktning för ämnen användaren markerat som extra viktiga. */
+const TOPIC_BOOST = 1.5;
+const HISTORY_KEY = "kompass-history-v1";
 
 function agree(a: number): { t: string; c: string } {
   return a >= 0.8 ? { t: "Överens", c: "ag-high" } : a >= 0.5 ? { t: "Delvis", c: "ag-mid" } : { t: "Oense", c: "ag-low" };
@@ -161,18 +167,22 @@ function ProgressHeader({
   title,
   answeredCount,
   total,
+  commentCount,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>;
   title: string;
   answeredCount: number;
   total: number;
+  commentCount: number;
 }) {
   return (
     <div className="progress">
       <div className="progresshead">
         {/* Kontextuell h1: byts mellan frågestegen och resultatet; tar emot fokus vid stegbyte. */}
         <h1 ref={headingRef} tabIndex={-1} className="progresstitle">{title}</h1>
-        <span className="meta">{answeredCount}/{total} besvarade</span>
+        <span className="meta">
+          {answeredCount}/{total} besvarade{commentCount > 0 ? ` · 💬 ${commentCount}` : ""}
+        </span>
       </div>
       {/* Visuell stapel döljs för skärmläsare – siffran ovan säger redan samma sak. */}
       <div className="progresstrack" aria-hidden="true"><div className="progressfill" style={{ width: `${(answeredCount / total) * 100}%` }} /></div>
@@ -180,16 +190,29 @@ function ProgressHeader({
   );
 }
 
+function loadHistory(): RunSnapshot[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as RunSnapshot[];
+    return Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Kompass({ catalog, parties, scale, sources, isPublished }: Props) {
   const [started, setStarted] = useState(false);
-  const [step, setStep] = useState(0); // 0..sections.length-1 = section; ===length = resultat
+  const [step, setStep] = useState(0); // 0..sections.length-1 = section; >=length = resultat
   const [mode, setMode] = useState<TestModeId>("standard");
   const [runId, setRunId] = useState(() => crypto.randomUUID());
   const [runSeed, setRunSeed] = useState(() => crypto.randomUUID());
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
+  const [boosts, setBoosts] = useState<ReadonlySet<string>>(() => new Set());
   const [method, setMethod] = useState<MatchMethod>("hybrid");
   const [advanced, setAdvanced] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [whyOpen, setWhyOpen] = useState<Record<string, boolean>>({});
   // Beständig sessionsreferens: stabil över omladdningar så användaren kan begära radering.
   const [sessionId] = useState(() => {
     try {
@@ -210,7 +233,8 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   const [ai, setAi] = useState<{ loading: boolean; analysis: CommentAnalysis | null; note: string | null; error: string | null }>({
     loading: false, analysis: null, note: null, error: null,
   });
-  const [history, setHistory] = useState<RunSnapshot[]>([]);
+  // Historik överlever sidladdning: "gör om och jämför" är kompassens kärnlöfte.
+  const [history, setHistory] = useState<RunSnapshot[]>(loadHistory);
 
   // Fokushantering: flytta fokus till rubriken vid stegbyte (a11y).
   const headingRef = useRef<HTMLHeadingElement | null>(null);
@@ -225,30 +249,62 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
     [catalog, plan.selectedQuestions],
   );
   const questions = useMemo(() => toMatchingQuestions(selectedCatalog), [selectedCatalog]);
+  const qMeta = useMemo(() => new Map(catalog.questions.map((q) => [q.id, q])), [catalog]);
   const qText = useMemo(() => Object.fromEntries(catalog.questions.map((q) => [q.id, q.text])), [catalog]);
   const total = plan.selectedQuestions.length;
+
+  const sectionTitleByQuestion = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of sections) for (const q of s.questions) m[q.id] = s.title;
+    return m;
+  }, [sections]);
+  const effWeight = (id: string, w: number): number =>
+    boosts.has(sectionTitleByQuestion[id] ?? "") ? w * TOPIC_BOOST : w;
 
   const setVal = (id: string, value: number | null) =>
     setAnswers((s) => ({ ...s, [id]: { value, weight: s[id]?.weight ?? 1 } }));
   const toggleWeight = (id: string) =>
     setAnswers((s) => ({ ...s, [id]: { value: s[id]?.value ?? null, weight: (s[id]?.weight ?? 1) === 2 ? 1 : 2 } }));
+  const toggleBoost = (title: string) =>
+    setBoosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
 
   const answeredCount = plan.selectedQuestions.filter((q) => answers[q.id]?.value !== null && answers[q.id]?.value !== undefined).length;
 
-  const result = useMemo(() => {
+  // Kanoniska svar (polaritet speglad, ämnesboost invägd) — delas av matchning,
+  // per-dimension-nedbrytning och 2D-kartan så alla vyer bygger på samma siffror.
+  const canonical = useMemo(() => {
     const display: DisplayAnswers = Object.fromEntries(
-      Object.entries(answers).map(([id, a]) => [id, { value: a.value, weight: a.weight }]),
+      Object.entries(answers).map(([id, a]) => [id, { value: a.value, weight: effWeight(id, a.weight) }]),
     );
-    const canonical = toCanonicalAnswers(display, questions, scale);
-    return {
+    return toCanonicalAnswers(display, questions, scale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, boosts, sectionTitleByQuestion, questions, scale]);
+
+  const result = useMemo(
+    () => ({
       ranked: rankParties(parties, questions, canonical, scale, method),
       userCoords: userCoordinates(questions, canonical, scale),
-    };
-  }, [answers, questions, parties, scale, method]);
+    }),
+    [canonical, questions, parties, scale, method],
+  );
 
+  const partyById = useMemo(() => new Map(parties.map((p) => [p.id, p])), [parties]);
+
+  // Partikoordinater beräknas på HELA frågebanken (en formulering per sakfrågegrupp),
+  // inte körningens urval — partierna ska ligga still mellan varianter så att
+  // "kartavstånd" jämför användarens rörelse, inte urvalets.
+  const mapQuestions = useMemo(
+    () => toMatchingQuestions({ ...catalog, questions: uniqueGroupQuestions(catalog.questions) }),
+    [catalog],
+  );
   const partyPoints = useMemo(
-    () => parties.map((p) => ({ id: p.id, name: p.name, coords: partyCoordinates(p, questions, scale) })),
-    [parties, questions, scale],
+    () => parties.map((p) => ({ id: p.id, name: p.name, coords: partyCoordinates(p, mapQuestions, scale) })),
+    [parties, mapQuestions, scale],
   );
 
   const commentItems = () => {
@@ -257,6 +313,93 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
     if (comment.trim()) items.push({ text: comment });
     return items;
   };
+  const commentCount = commentItems().length;
+
+  // Frågor värda att utveckla: stjärnmarkerade först, sedan starka svar — utan kommentar.
+  const suggested = useMemo(() => {
+    const cands = plan.selectedQuestions.filter((q) => {
+      const a = answers[q.id];
+      return !!a && a.value !== null && !(comments[q.id]?.trim()) && (a.weight === 2 || Math.abs(a.value) === 2);
+    });
+    return cands
+      .sort((x, y) => {
+        const ax = answers[x.id]!;
+        const ay = answers[y.id]!;
+        const sx = (ax.weight === 2 ? 10 : 0) + Math.abs(ax.value ?? 0);
+        const sy = (ay.weight === 2 ? 10 : 0) + Math.abs(ay.value ?? 0);
+        return sy - sx;
+      })
+      .slice(0, 3);
+  }, [plan.selectedQuestions, answers, comments]);
+
+  // Frågor som AI-tolkningen kopplade kommentarer till (för 💬-märkning i breakdownen).
+  const nuancedIds = useMemo(() => {
+    const s = new Set<string>();
+    if (ai.analysis) {
+      for (const id of ai.analysis.relatedQuestionIds) s.add(id);
+      for (const imp of ai.analysis.commentInfluences) {
+        if (imp.sourceQuestionId) s.add(imp.sourceQuestionId);
+        for (const id of imp.affectedQuestionIds) s.add(id);
+      }
+    }
+    return s;
+  }, [ai.analysis]);
+
+  // ---------- permalink ----------
+
+  function permalinkFragment(): string {
+    const a: Record<string, readonly [number | null, number]> = {};
+    for (const q of plan.selectedQuestions) {
+      const s = answers[q.id];
+      if (s) a[q.id] = [s.value, s.weight];
+    }
+    return encodeRunState({
+      version: RUN_STATE_VERSION,
+      mode,
+      seed: runSeed,
+      method,
+      answers: a,
+      ...(boosts.size > 0 ? { boosts: [...boosts] } : {}),
+    });
+  }
+
+  // Återställ en delad/omladdad körning från URL-fragmentet (körs en gång vid mount).
+  // Fragmentet finns bara i webbläsaren, så detta kan inte göras i SSR/lazy init utan
+  // hydration-mismatch — en engångs-setState i mount-effekten är den SSR-säkra vägen.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const m = window.location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
+      if (!m) return;
+      const state = decodeRunState(m[1]!);
+      if (!state) return;
+      /* eslint-disable react-hooks/set-state-in-effect -- avsiktlig engångsåterställning, gated av restoredRef */
+      setMode(state.mode);
+      setRunSeed(state.seed);
+      setMethod(state.method);
+      setAnswers(Object.fromEntries(Object.entries(state.answers).map(([id, [value, weight]]) => [id, { value, weight }])));
+      if (state.boosts) setBoosts(new Set(state.boosts));
+      setStarted(true);
+      setStep(Number.MAX_SAFE_INTEGER); // direkt till resultatet; klampas mot sections.length i renderingen
+      /* eslint-enable react-hooks/set-state-in-effect */
+    } catch {
+      /* trasig länk ignoreras tyst — användaren landar på intron */
+    }
+  }, []);
+
+  // Håll URL-fragmentet i synk på resultatsidan så omladdning/bokmärke/delning
+  // alltid pekar på exakt det resultat som visas. replaceState → ingen historikspam.
+  const onResults = started && step >= sections.length;
+  useEffect(() => {
+    if (!onResults || answeredCount === 0) return;
+    try {
+      window.history.replaceState(null, "", `#r=${permalinkFragment()}`);
+    } catch {
+      /* t.ex. inbäddad utan history-API — permalink är progressive enhancement */
+    }
+  });
 
   async function submitComment() {
     const items = commentItems();
@@ -270,7 +413,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
           sessionId, method,
           answers: Object.fromEntries(plan.selectedQuestions
             .filter((q) => answers[q.id])
-            .map((q) => [q.id, { value: answers[q.id]!.value, weight: answers[q.id]!.weight }])),
+            .map((q) => [q.id, { value: answers[q.id]!.value, weight: effWeight(q.id, answers[q.id]!.weight) }])),
           comments: items, consent: { article9: true },
         }),
       });
@@ -285,14 +428,14 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   async function share() {
     const top = result.ranked.matches.slice(0, 3).map((m, i) => `${i + 1}. ${m.partyName} ${m.percent ?? "–"}%`).join(" · ");
     const text = `Min valkompass 2026: ${top}`;
-    const url = typeof window !== "undefined" ? `${window.location.origin}/kompass` : "";
+    const url = typeof window !== "undefined" ? `${window.location.origin}/kompass#r=${permalinkFragment()}` : "";
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ title: "Valkompass 2026", text, url });
         setShared("shared");
         setTimeout(() => setShared(false), 4000);
       } else {
-        await navigator.clipboard.writeText(`${text} — ${url}`);
+        await navigator.clipboard.writeText(`${text} – ${url}`);
         setShared("clipboard");
       }
     } catch (err) {
@@ -320,7 +463,15 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   function recordRun() {
     if (answeredCount === 0) return;
     const snapshot = currentSnapshot();
-    setHistory((prev) => [snapshot, ...prev.filter((h) => h.id !== snapshot.id)].slice(0, 8));
+    setHistory((prev) => {
+      const next = [snapshot, ...prev.filter((h) => h.id !== snapshot.id)].slice(0, 8);
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      } catch {
+        /* t.ex. privat läge utan lagring — historiken blir sessionslokal */
+      }
+      return next;
+    });
   }
 
   function showResults() {
@@ -329,16 +480,23 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   }
 
   function resetRun(nextSeed?: string) {
+    recordRun(); // fånga ev. återställd/ändrad körning innan den nollas, så jämförelsen har något att jämföra mot
     setAnswers({});
     setComments({});
     setComment("");
     setCommentOpen({});
+    setWhyOpen({});
     setConsent(false);
     setShared(false);
     setExpanded(null);
     setAi({ loading: false, analysis: null, note: null, error: null });
     setRunId(crypto.randomUUID());
     if (nextSeed) setRunSeed(nextSeed);
+    try {
+      window.history.replaceState(null, "", window.location.pathname);
+    } catch {
+      /* ok */
+    }
     setStarted(true);
     setStep(0);
   }
@@ -362,6 +520,11 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
     return `${econPart}, ${galPart}`;
   }
 
+  // Hållning i ord för den visade formuleringen (kanoniskt värde + frågans polaritet).
+  function stanceFor(questionId: string, canonicalValue: number): string {
+    return stanceLabel(canonicalValue, qMeta.get(questionId)?.polarity ?? 1, scale);
+  }
+
   // ---------- intro ----------
   if (!started) {
     return (
@@ -370,7 +533,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
         <h1 ref={headingRef} tabIndex={-1}>Valkompass 2026</h1>
         <p className="lead">
           Välj testlängd och få ett balanserat urval ur en frågebank med {plan.totalQuestionGroups} sakfrågegrupper
-          och {plan.totalFormulations} godkända formuleringar. Du kan göra om samma test eller ta en ny variant
+          och {plan.totalFormulations} formuleringar. Du kan göra om samma test eller ta en ny variant
           och jämföra om du hamnar ungefär på samma plats.
         </p>
         <div className="modegrid" role="radiogroup" aria-label="Välj testlängd">
@@ -387,6 +550,25 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
             </button>
           ))}
         </div>
+        <fieldset className="boosts">
+          <legend>Vad väger extra tungt för dig? (valfritt)</legend>
+          <p className="meta" style={{ margin: "0 0 2px" }}>
+            Frågor inom valda områden räknas ×1,5 i matchningen. Du kan också stjärnmarkera enskilda frågor inne i testet.
+          </p>
+          <div className="chiprow">
+            {sections.map((s) => (
+              <button
+                key={s.title}
+                type="button"
+                className={`chipbtn${boosts.has(s.title) ? " on" : ""}`}
+                aria-pressed={boosts.has(s.title)}
+                onClick={() => toggleBoost(s.title)}
+              >
+                {s.title}
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <p className="meta">
           Den här körningen innehåller {total} frågor. Frågor inom samma sakfrågegrupp blandas inte i samma test.
         </p>
@@ -400,7 +582,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
           <button type="button" className="btn btn-primary" onClick={() => setStarted(true)}>Starta kompassen →</button>
         </p>
         <p className="meta" style={{ marginTop: 12 }}>
-          Vägledande verktyg, inte en rekommendation att rösta på ett visst parti.
+          Ett vägledande verktyg – hur du röstar avgör du själv.
         </p>
       </main>
     );
@@ -421,10 +603,11 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
       previous &&
       (snapshot.topPartyId === previous.topPartyId || topOverlap >= 2) &&
       (distance == null || distance <= 0.35);
+    const boostedTitles = [...boosts];
 
     return (
       <main className="container">
-        <ProgressHeader headingRef={headingRef} title="Resultat" answeredCount={answeredCount} total={total} />
+        <ProgressHeader headingRef={headingRef} title="Resultat" answeredCount={answeredCount} total={total} commentCount={commentCount} />
         <div className="toolbar" style={{ justifyContent: "space-between" }}>
           <button type="button" className="btn" onClick={() => setStep(Math.max(0, sections.length - 1))}>← Ändra svar</button>
           <span className="result-actions">
@@ -433,6 +616,10 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
             <button type="button" className="btn btn-primary" onClick={share}>{shared === "shared" ? "Delat ✓" : shared === "clipboard" ? "Kopierat ✓" : "Dela resultat"}</button>
           </span>
         </div>
+        <p className="permnote">
+          Adressfältet innehåller nu en länk till exakt detta resultat. Spara eller dela den – svaren ligger kodade i
+          själva länken (efter #) och skickas aldrig till servern.
+        </p>
 
         {answeredCount === 0 ? (
           <p className="muted">Du har inte svarat på någon fråga ännu. Gå tillbaka och svara på minst en.</p>
@@ -448,6 +635,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
               )}
               <p className="meta">
                 {plan.mode.label}: {answeredCount}/{total} frågor besvarade. Varianten är balanserad över ämnen och axlar.
+                {boostedTitles.length > 0 && <> Uppviktade områden (×1,5): {boostedTitles.join(" · ")}.</>}
               </p>
               {previous ? (
                 <div className={`stability ${stable ? "stable" : "sensitive"}`}>
@@ -471,6 +659,10 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                 const open = expanded === m.partyId;
                 const color = PARTY_COLORS[m.partyId] ?? "var(--accent)";
                 const bd = [...m.breakdown].sort((a, b) => b.agreement - a.agreement);
+                const partyObj = partyById.get(m.partyId);
+                const dims = open && partyObj
+                  ? matchPartyByDimension(partyObj, questions, canonical, scale, method).filter((d) => d.percent !== null)
+                  : [];
                 return (
                   <div className={`row${i === 0 ? " top" : ""}`} key={m.partyId}>
                     <button type="button" className="rowhead" aria-expanded={open} onClick={() => setExpanded(open ? null : m.partyId)}>
@@ -482,15 +674,34 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                     <div className="bartrack"><div className="barfill" style={{ width: `${pct}%`, background: color }} /></div>
                     {open && (
                       <div className="breakdown">
+                        {dims.length > 1 && (
+                          <div className="dimline" aria-label={`Matchning per dimension mot ${m.partyName}`}>
+                            {dims.map((d) => (
+                              <span key={d.dimension}>
+                                {DIMLABEL[d.dimension]}: <strong>{d.percent} %</strong> ({d.answeredCount} {d.answeredCount === 1 ? "fråga" : "frågor"})
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <p className="meta">Baserat på {m.answeredCount} frågor. Sorterat efter störst överensstämmelse.</p>
                         {bd.map((b) => {
                           const ag = agree(b.agreement);
                           const src = sources[`${m.partyId}::${b.questionId}`];
+                          const commented = Boolean(comments[b.questionId]?.trim());
+                          const nuanced = nuancedIds.has(b.questionId);
                           return (
                             <div className="bdrow" key={b.questionId}>
                               <span className={`agchip ${ag.c}`}>{ag.t}</span>
                               <span className="bdq">{qText[b.questionId]}</span>
+                              {nuanced ? (
+                                <span className="qcbadge" title="AI-tolkningen vägde in din kommentar på den här frågan">💬 i din tolkning</span>
+                              ) : commented ? (
+                                <span className="qcbadge" title="Du har kommenterat den här frågan">💬 kommenterad</span>
+                              ) : null}
                               {src && <a className="srclink" href={src.url} target="_blank" rel="noopener noreferrer" title={src.label}>källa ↗</a>}
+                              <span className="bdmeta">
+                                Du: {stanceFor(b.questionId, b.userValue)} · {m.partyId}: {stanceFor(b.questionId, b.partyValue)}
+                              </span>
                             </div>
                           );
                         })}
@@ -499,7 +710,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                   </div>
                 );
               })}
-              <p className="meta" style={{ marginTop: 14 }}>Metod: {method}. Klicka på ett parti för att se var ni är överens och skiljer er åt, med källa.</p>
+              <p className="meta" style={{ marginTop: 14 }}>Metod: {method}. Klicka på ett parti för att se var ni är överens och skiljer er åt, med källa och partiets hållning i ord.</p>
               <p className="meta">Överens-etiketterna per fråga visar hur nära din position ligger partiets råposition – de följer inte den valda matchningsmetoden.</p>
               {method === "directional" && (
                 <p className="meta">Med metoden Riktning räknas mittenliga svar (neutralt/i mitten) som neutrala av princip och påverkar därför inte matchningen åt något håll.</p>
@@ -545,6 +756,9 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                   </li>
                 </ul>
               </div>
+              <p className="meta" style={{ textAlign: "center" }}>
+                Partiernas placering beräknas på hela frågebanken och ligger därför still mellan testvarianter. Din punkt följer dina svar i den aktuella körningen.
+              </p>
               <div className="legend">
                 {result.ranked.matches.map((m) => (
                   <span className="legitem" key={m.partyId}>
@@ -557,14 +771,55 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
             </div>
 
             <div className="comment">
-              <h2 id="kommentar-rubrik">Kommentera ditt val</h2>
-              <p className="meta">Dina kommentarer tolkas av AI som ett additivt lager – de ändrar aldrig matchningssiffran. Kommentera enskilda frågor inne i testet, och/eller skriv en övergripande kommentar här.</p>
+              <h2 id="kommentar-rubrik">Din profil i ord</h2>
+              <p className="meta">
+                Reglagen ger siffran och dina egna ord ger nyansen. Skriv varför du svarade som du gjorde, så tolkar
+                AI:n din profil i ord och visar hur varje kommentar vägdes in. Tolkningen är ett separat, tydligt märkt
+                lager; matchningsprocenten räknas alltid enbart på dina skalsvar.
+              </p>
+              {suggested.length > 0 && !ai.analysis && !ai.loading && (
+                <div className="suggest">
+                  <strong>Nyansera där det väger tyngst</strong>
+                  <p className="meta" style={{ margin: "2px 0 0" }}>
+                    Det här är dina starkaste ställningstaganden i testet. En mening om <em>varför</em> räcker för att göra tolkningen skarpare.
+                  </p>
+                  <ul>
+                    {suggested.map((q) => {
+                      const open = commentOpen[q.id] || (comments[q.id]?.trim().length ?? 0) > 0;
+                      const a = answers[q.id];
+                      const answerLabel = a?.value != null ? SCALE_OPTS.find((o) => o.v === a.value)?.label : null;
+                      return (
+                        <li key={q.id}>
+                          <span className="bdq">{q.text}</span>
+                          <span className="meta">
+                            Du svarade {answerLabel?.toLowerCase() ?? "–"}{a?.weight === 2 ? " och markerade frågan som ★ viktig" : ""}.
+                          </span>{" "}
+                          {open ? (
+                            <textarea
+                              className="qcommentbox"
+                              aria-label={`Kommentar till: ${q.text}`}
+                              placeholder="Varför? Vad avgjorde ditt svar?"
+                              rows={2}
+                              value={comments[q.id] ?? ""}
+                              onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
+                            />
+                          ) : (
+                            <button type="button" className="linkbtn" onClick={() => setCommentOpen((s) => ({ ...s, [q.id]: true }))}>
+                              + Utveckla ditt svar
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
               {Object.entries(comments).filter(([, t]) => t.trim()).length > 0 && (
                 <div className="qcomments-summary">
-                  <p className="meta">Dina frågekommentarer (vägs in i analysen):</p>
+                  <p className="meta">Dina frågekommentarer (vägs in i tolkningen):</p>
                   <ul>
                     {Object.entries(comments).filter(([, t]) => t.trim()).map(([id, t]) => (
-                      <li key={id}><strong>{qText[id]}</strong> — {t}</li>
+                      <li key={id}><strong>{qText[id]}</strong> – {t}</li>
                     ))}
                   </ul>
                 </div>
@@ -580,25 +835,28 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                 </span>
               </label>
               <button type="button" className="btn btn-primary" onClick={submitComment} aria-busy={ai.loading} disabled={ai.loading || !consent || commentItems().length === 0}>
-                {ai.loading ? "Analyserar…" : "Analysera kommentarer"}
+                {ai.loading ? "Tolkar…" : "Skapa min tolkning"}
               </button>
+              {commentItems().length === 0 && (
+                <p className="meta" style={{ marginTop: 6 }}>Skriv minst en kommentar (på en fråga ovan eller övergripande) så kan tolkningen skapas.</p>
+              )}
               {/* Diskret, artig live-region som annonserar AI-status för skärmläsare. */}
               <p className="sr-only" role="status" aria-live="polite">
-                {ai.loading ? "Analyserar…" : ai.analysis ? "Analys klar" : ""}
+                {ai.loading ? "Tolkar…" : ai.analysis ? "Tolkning klar" : ""}
               </p>
               {ai.error && <p className="close" role="alert">{ai.error}</p>}
               {ai.note && <p className="meta">{ai.note}</p>}
               {ai.analysis && (
                 <div className="analysis">
-                  <span className="aibadge">AI-genererad tolkning</span>
+                  <span className="aibadge">AI-genererad tolkning – siffran räknas separat</span>
                   <p>{ai.analysis.summary}</p>
                   {ai.analysis.themes.length > 0 && (
                     <p className="chips">{ai.analysis.themes.map((t) => <span className="chip" key={t}>{t}</span>)}</p>
                   )}
                   <p className="meta">Ton: {ai.analysis.sentiment}</p>
                   <div className="influencebox">
-                    <h3>Så påverkade kommentarerna</h3>
-                    <p className="meta">Kommentarerna ändrade inte matchningsprocenten eller partiernas rangordning. De påverkade bara den AI-genererade tolkningen nedan.</p>
+                    <h3>Så bidrog dina kommentarer</h3>
+                    <p className="meta">Matchningsprocenten och partiernas rangordning räknas enbart på dina skalsvar. Kommentarerna formade den AI-genererade tolkningen, och frågorna de kopplades till är märkta med 💬 i partilistan ovan.</p>
                     {ai.analysis.commentInfluences.length > 0 ? (
                       <div className="influences">
                         {ai.analysis.commentInfluences.map((impact, i) => {
@@ -648,7 +906,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
         )}
 
         <p className="disclaimer">
-          Vägledande verktyg, inte en rekommendation att rösta på ett visst parti. Matchningen är deterministisk
+          Ett vägledande verktyg – hur du röstar avgör du själv. Matchningen är deterministisk
           och förklarbar; fritextkommentaren tolkas av AI som ett separat, märkt lager.
         </p>
       </main>
@@ -658,6 +916,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   // ---------- frågesteg ----------
   const section = sections[step]!;
   const sectionQs = section.questions;
+  const boosted = boosts.has(section.title);
   return (
     <main className="container">
       <ProgressHeader
@@ -665,15 +924,35 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
         title={`Avsnitt ${step + 1} av ${sections.length} · ${section.title}`}
         answeredCount={answeredCount}
         total={total}
+        commentCount={commentCount}
       />
-      <h2 className="sectiontitle">{section.title}</h2>
+      <h2 className="sectiontitle">
+        {section.title}
+        {boosted && <span className="boostchip" title="Du valde att vikta upp det här området">★ väger tyngre (×1,5)</span>}
+      </h2>
 
       {sectionQs.map((q) => {
         const showBox = commentOpen[q.id] || (comments[q.id]?.trim().length ?? 0) > 0;
+        const a = answers[q.id];
+        const strongAnswer = !!a && a.value !== null && (Math.abs(a.value) === 2 || a.weight === 2);
+        const rationale = qMeta.get(q.id)?.rationale;
         return (
           <div className="question" key={q.id}>
             <div className="topic">{q.topic}</div>
             <div className="text">{q.text}</div>
+            {rationale && (
+              <>
+                <button
+                  type="button"
+                  className="linkbtn"
+                  aria-expanded={Boolean(whyOpen[q.id])}
+                  onClick={() => setWhyOpen((s) => ({ ...s, [q.id]: !s[q.id] }))}
+                >
+                  Varför ställs frågan?
+                </button>
+                {whyOpen[q.id] && <p className="rationalebox">{rationale}</p>}
+              </>
+            )}
             <Scale
               id={q.id}
               answer={answers[q.id]}
@@ -686,14 +965,15 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                 <textarea
                   className="qcommentbox"
                   aria-label={`Kommentar till: ${q.text}`}
-                  placeholder="Din kommentar till frågan (valfritt) – vägs in i AI-analysen…"
+                  placeholder="Varför svarade du så? Ditt resonemang vägs in i AI-tolkningen av din profil (procenten räknas enbart på skalsvaren)."
                   rows={2}
                   value={comments[q.id] ?? ""}
                   onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
                 />
               ) : (
                 <button type="button" className="linkbtn" onClick={() => setCommentOpen((s) => ({ ...s, [q.id]: true }))}>
-                  + Kommentera frågan
+                  + Utveckla ditt svar
+                  {strongAnswer && <span className="nudge"> – starkt svar, berätta gärna varför</span>}
                 </button>
               )}
             </div>

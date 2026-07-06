@@ -9,8 +9,8 @@ const scale: Scale = { min: -2, max: 2 };
 const PARTIES = ["V", "S", "MP", "C", "L", "KD", "M", "SD"];
 const now = "2026-06-17T00:00:00.000Z";
 
-test("2026: 60 formuleringar, alla utkast, båda dimensionerna, blandad polaritet", () => {
-  assert.equal(catalog2026Questions.length, 60);
+test("2026: 62 formuleringar, alla utkast, båda dimensionerna, blandad polaritet", () => {
+  assert.equal(catalog2026Questions.length, 62);
   assert.ok(catalog2026Questions.every((q) => q.status === "draft"));
   const dims = new Set(catalog2026Questions.map((q) => q.dimension).filter(Boolean));
   assert.ok(dims.has("economic") && dims.has("galtan"));
@@ -18,8 +18,8 @@ test("2026: 60 formuleringar, alla utkast, båda dimensionerna, blandad polarite
   assert.ok(pols.has(1) && pols.has(-1));
 });
 
-test("2026: 480 positioner, värden i skala, källbelagda, alla par täckta", () => {
-  assert.equal(catalog2026Positions.length, 60 * 8);
+test("2026: 496 positioner, värden i skala, källbelagda, alla par täckta", () => {
+  assert.equal(catalog2026Positions.length, 62 * 8);
   const seen = new Set<string>();
   for (const p of catalog2026Positions) {
     assert.ok(p.value >= -2 && p.value <= 2, `${p.questionId}/${p.partyId} utanför skala`);
@@ -51,6 +51,9 @@ test("2026: ideologiska ankarpartier hamnar på motsatta sidor av skalans mittpu
     ["karnkraft", "M", "V"], // för utbyggnad vs emot
     ["bistand", "SD", "V"], // minska bistånd vs värna
     ["skatt_arbete", "M", "MP"], // sänkt skatt på arbete (höger) vs vänster
+    ["abort", "SD", "V"], // begränsa sena aborter vs värna aborträtten (regressionsvakt för 2026-07-kalibreringen)
+    ["marknadshyror", "M", "V"], // fri hyressättning vs bruksvärdessystem
+    ["sjukvard_stat", "KD", "C"], // förstatliga vården vs regionalt självstyre
   ];
 
   for (const [questionId, posParty, negParty] of anchors) {

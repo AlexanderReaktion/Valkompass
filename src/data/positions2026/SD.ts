@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: 2, l: "Vi Lärare – Så säger partierna om friskolor (SD)", u: "https://www.vilarare.se/nyheter/friskolor/sa-sager-partierna-om-friskolor/" },
   { q: "vinst_skola", v: 1, l: "SD förespråkar inget vinstförbud i friskolor men har accepterat vinststopp för nya och felande skolor", u: "https://www.svt.se/nyheter/inrikes/regeringen-vill-infora-vinststopp-for-nya-friskolor" },
   { q: "foraldraforsakring", v: 2, l: "SD-motion 2020/21:2026 – Ekonomisk trygghet för barn och familj", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/ekonomisk-trygghet-for-barn-och-familj_h8022026/html/" },
-  { q: "abort", v: 2, l: "Riksdagen – Motion 2017/18:1625 (SD) Sänkning av gränsen för fri abort", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/sankning-av-gransen-for-fri-abort_h5021625/" },
+  { q: "abort", v: 1, l: "Riksdagen – Motion 2017/18:1625 (SD) Sänkning av gränsen för fri abort (officiell linje i dag: står bakom nuvarande lag)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/sankning-av-gransen-for-fri-abort_h5021625/" },
   { q: "hbtqi", v: 2, l: "Riksdagen: SD-motion 2024/25:402 Riv upp könstillhörighetslagen", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/riv-upp-konstillhorighetslagen_hc02402/" },
   { q: "nato", v: 2, l: "SVT Valkompass 2026: SD stöder starkt NATO-medlemskapet som nödvändigt för säkerheten", u: "https://valkompass.svt.se/2026/parti/sverigedemokraterna/" },
   { q: "forsvarsanslag", v: 2, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: -2, l: "SVT Valkompass 2026: SD motsätter sig euron för att behålla kontroll över penningpolitiken", u: "https://valkompass.svt.se/2026/parti/sverigedemokraterna/" },
   { q: "public_service", v: 2, l: "SVT Valkompass 2026: SD vill smalna av public service uppdrag och minska finansieringen", u: "https://valkompass.svt.se/2026/parti/sverigedemokraterna/" },
   { q: "monarki", v: 2, l: "SD vill bevara monarkin", u: "https://en.wikipedia.org/wiki/Sweden_Democrats" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: -1, l: "Fastighetstidningen: Partiernas syn på friare hyror (SD emot fri hyressättning; värnar bruksvärdessystemet)", u: "https://fastighetstidningen.se/nyhet/partiernas-syn-pa-friare-hyror/" },
+  { q: "sjukvard_stat", v: 2, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (SD ett av två partier som vill att staten tar över)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

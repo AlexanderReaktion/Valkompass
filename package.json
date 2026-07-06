@@ -14,6 +14,7 @@
     "start": "next start",
     "test": "node --test src/**/*.test.ts",
     "test:match": "node --test src/matching/engine.test.ts",
+    "validate:scales": "node scripts/validateScales.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: -1, l: "Miljöpartiet – Skola", u: "https://www.mp.se/politik/skola/" },
   { q: "vinst_skola", v: -2, l: "Vi Lärare: Miljöpartiet vill förbjuda vinstuttag", u: "https://www.vilarare.se/nyheter/politik/miljopartiet-vinstuttag-ska-forbjudas/" },
   { q: "foraldraforsakring", v: -2, l: "MP-motion 2025/26:3501 – En jämlik och jämställd föräldraförsäkring", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/en-jamlik-och-jamstalld-foraldraforsakring_hd023501/" },
-  { q: "abort", v: 1, l: "Miljöpartiet – Abort", u: "https://www.mp.se/politik/abort/" },
+  { q: "abort", v: -2, l: "Miljöpartiet – Abort: försvara och stärk aborträtten, emot begränsningar", u: "https://www.mp.se/politik/abort/" },
   { q: "hbtqi", v: -2, l: "SVT: Så tycker partierna i frågan om könslagen", u: "https://www.svt.se/nyheter/inrikes/sa-tycker-partierna-i-fragan-om-konslagen" },
   { q: "nato", v: 1, l: "SVT Valkompass 2026 – Miljöpartiet", u: "https://valkompass.svt.se/2026/parti/miljopartiet/" },
   { q: "forsvarsanslag", v: 1, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: -2, l: "EU | Miljöpartiet", u: "https://www.mp.se/politik/eu/" },
   { q: "public_service", v: -2, l: "Miljöpartiet: Nu stärker vi public service oberoende", u: "https://www.mp.se/just-nu/nu-starker-vi-public-service-oberoende/" },
   { q: "monarki", v: -2, l: "Republikanska föreningen: Vad tycker partierna om republik?", u: "https://www.republikanskaforeningen.se/opinion/vad-tycker-partierna-om-republik/" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: -1, l: "Fastighetstidningen: Partiernas syn på friare hyror (MP emot fri hyressättning)", u: "https://fastighetstidningen.se/nyhet/partiernas-syn-pa-friare-hyror/" },
+  { q: "sjukvard_stat", v: -1, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (MP emot förstatligande)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

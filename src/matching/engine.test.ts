@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   matchParty,
+  matchPartyByDimension,
   rankParties,
   userCoordinates,
   partyCoordinates,
@@ -215,4 +216,16 @@ test("axel utan svar ger null-koordinat", () => {
   const c = userCoordinates(questions, a, scale);
   assert.equal(c.economic, 1);
   assert.equal(c.galtan, undefined); // ingen galtan-fråga besvarad
+});
+
+test("matchPartyByDimension bryter ner matchningen per axel", () => {
+  // Full träff på economic (q1, q3), full miss på galtan (q2).
+  const a = ans({ q1: 2, q3: 2, q2: -2 });
+  const dims = matchPartyByDimension(right, questions, a, scale, "cityblock");
+  const byDim = new Map(dims.map((d) => [d.dimension, d]));
+  assert.equal(byDim.get("economic")!.percent, 100);
+  assert.equal(byDim.get("economic")!.answeredCount, 2);
+  assert.equal(byDim.get("galtan")!.percent, 0);
+  assert.equal(byDim.get("none")!.percent, null); // inga axellösa frågor
+  assert.equal(byDim.get("none")!.answeredCount, 0);
 });

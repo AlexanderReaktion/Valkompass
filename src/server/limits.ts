@@ -104,7 +104,7 @@ export async function allowAiCall(nowIso: string, cap: number = DAILY_AI_CALL_BU
   if (isProd()) {
     if (!warnedAiNoUpstash) {
       warnedAiNoUpstash = true;
-      console.warn("AI-budget kan inte hävdas utan Upstash i produktion — nekar AI-anrop (fail-closed).");
+      console.warn("AI-budget kan inte hävdas utan Upstash i produktion – nekar AI-anrop (fail-closed).");
     }
     return false;
   }
@@ -130,7 +130,7 @@ export async function allowAdminAiCall(nowIso: string, cap: number = DAILY_ADMIN
   if (isProd()) {
     if (!warnedAiNoUpstash) {
       warnedAiNoUpstash = true;
-      console.warn("AI-budget kan inte hävdas utan Upstash i produktion — nekar AI-anrop (fail-closed).");
+      console.warn("AI-budget kan inte hävdas utan Upstash i produktion – nekar AI-anrop (fail-closed).");
     }
     return false;
   }

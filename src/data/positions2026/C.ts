@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: -1, l: "Centerpartiet – Valfrihet i skolan", u: "https://www.centerpartiet.se/var-politik/politik-a-o/utbildning/valfrihet-i-skolan" },
   { q: "vinst_skola", v: 1, l: "SVT: Centerpartiet svänger – vill begränsa friskolornas vinster", u: "https://www.svt.se/nyheter/inrikes/centerpartiet-svanger-vill-begransa-friskolornas-vinster" },
   { q: "foraldraforsakring", v: 0, l: "Centerpartiet – Föräldraförsäkring (politik A-Ö)", u: "https://www.centerpartiet.se/var-politik/politik-a-o/familjen/foraldraforsakring" },
-  { q: "abort", v: 1, l: "Kvinna till Kvinna – Feministisk valkompass 2026", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
+  { q: "abort", v: -2, l: "Kvinna till Kvinna – Feministisk valkompass 2026 (C står bakom aborträtten, vill grundlagsskydda den)", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
   { q: "hbtqi", v: -2, l: "SVT: Så tycker partierna i frågan om könslagen", u: "https://www.svt.se/nyheter/inrikes/sa-tycker-partierna-i-fragan-om-konslagen" },
   { q: "nato", v: 2, l: "Internationella försvarssamarbeten – Centerpartiet", u: "https://www.centerpartiet.se/var-politik/politik-a-o/forsvar/internationella-forsvarssamarbeten" },
   { q: "forsvarsanslag", v: 2, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: 0, l: "SVT: C vill utreda euron – nya partiledaren ville gå längre", u: "https://www.svt.se/nyheter/inrikes/c-vill-utreda-euron-nya-partiledaren-ville-ga-langre" },
   { q: "public_service", v: -2, l: "Centerpartiet om public service (2024)", u: "https://www.centerpartiet.se/press/nyheter/nyhetsarkiv-2024/2024-05-13-public-service-kommittens-inriktning-ar-orovackande-i-en-allvarlig-tid" },
   { q: "monarki", v: 2, l: "Monarki – Centerpartiet", u: "https://www.centerpartiet.se/centerpartiets-politik/centerpartiets-politik-a-o/demokrati/monarki" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: 1, l: "Kvartal: C släpper kravet på marknadshyror (länge drivande för fri hyressättning i nyproduktion; kravet nedtonat men grundhållningen positiv)", u: "https://kvartal.se/nyheter/artiklar/c-slapper-kravet-pa-marknadshyror/cG9zdDoxMTkyMzU" },
+  { q: "sjukvard_stat", v: -2, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (C försvarar det regionala självstyret tydligast)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

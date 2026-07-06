@@ -9,8 +9,8 @@ export default function Footer() {
         <Link href="/integritet">Integritet</Link>
       </nav>
       <p>
-        Vägledande verktyg, inte en rekommendation att rösta på ett visst parti. Matchningen är
-        deterministisk och förklarbar; fritextkommentarer tolkas av AI som ett separat, märkt lager.
+        Ett vägledande verktyg – hur du röstar avgör du själv. Matchningen är deterministisk och
+        förklarbar; fritextkommentarer tolkas av AI som ett separat, märkt lager.
       </p>
     </footer>
   );

@@ -218,11 +218,21 @@ export async function POST(request: Request): Promise<Response> {
     } else if (!(await allowAiCall(now))) {
       analysisNote = "Dagens AI-budget är nådd – analysen hoppades över. Försök igen senare.";
     } else {
+      // Skicka bara frågorna användaren faktiskt mötte (besvarade + kommenterade) —
+      // inte hela banken med variantformuleringar. Annars kan AI:n koppla kommentarer
+      // till *_alt-id:n användaren aldrig sett, och prompten sväller i onödan.
+      const relevantIds = new Set<string>([
+        ...Object.keys(parsedAnswers.display),
+        ...items.map((c) => c.questionId).filter((id): id is string => Boolean(id)),
+      ]);
+      const relevantQuestions = dataset.catalog.questions
+        .filter((q) => relevantIds.has(q.id))
+        .map((q) => ({ id: q.id, text: q.text }));
       try {
         const result = await analyzeComment({
           comments: items,
           ranking,
-          questions: dataset.catalog.questions.map((q) => ({ id: q.id, text: q.text })),
+          questions: relevantQuestions,
           analyzer: anthropicCommentAnalyzer(),
         });
         if (isPresentable(result)) analysis = result;

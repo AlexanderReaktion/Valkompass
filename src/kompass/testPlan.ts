@@ -24,14 +24,14 @@ export interface TestPlan {
 }
 
 export const TEST_MODES: readonly TestMode[] = [
-  { id: "quick", label: "Snabbtest", description: "25 frågor med bred täckning.", targetGroups: 25 },
-  { id: "standard", label: "Standard", description: "35 frågor för bättre stabilitet.", targetGroups: 35 },
-  { id: "deep", label: "Fördjupning", description: "Alla sakfrågegrupper i banken.", targetGroups: Number.POSITIVE_INFINITY },
+  { id: "quick", label: "Snabbtest", description: "25 frågor · ca 4 min · bred täckning.", targetGroups: 25 },
+  { id: "standard", label: "Standard", description: "35 frågor · ca 6 min · bättre stabilitet.", targetGroups: 35 },
+  { id: "deep", label: "Fördjupning", description: "Alla sakfrågegrupper · ca 8–10 min.", targetGroups: Number.POSITIVE_INFINITY },
 ] as const;
 
 const SECTION_DEFS: { title: string; ids: string[]; topics: string[] }[] = [
   { title: "Skatter & ekonomi", ids: ["skatt_arbete", "hoginkomstskatt", "bolagsskatt", "kapitalskatt", "offentliga_utgifter", "rutrot", "bensinskatt"], topics: ["skatter", "företag", "ekonomi", "drivmedel"] },
-  { title: "Välfärd & arbete", ids: ["vinst_valfard", "offentlig_ansvar", "arbetsratt", "akassa", "forsorjningsstod", "pension", "vard_resurser", "friskolor", "vinst_skola"], topics: ["välfärd", "arbetsmarknad", "trygghet", "bidrag", "pension", "sjukvård", "skola"] },
+  { title: "Välfärd, bostad & arbete", ids: ["vinst_valfard", "offentlig_ansvar", "arbetsratt", "akassa", "forsorjningsstod", "pension", "vard_resurser", "sjukvard_stat", "friskolor", "vinst_skola", "marknadshyror"], topics: ["välfärd", "arbetsmarknad", "trygghet", "bidrag", "pension", "sjukvård", "skola", "bostad"] },
   { title: "Migration & integration", ids: ["arbetskraftsinvandring", "asyl_farre", "flykting_oppen", "medborgarskap", "anpassning", "atervandring", "anhorig", "bistand"], topics: ["migration", "integration", "bistånd"] },
   { title: "Lag & ordning", ids: ["straff", "polisbefogenheter", "visitationszoner", "ungdomsstraff", "forebyggande", "integritet"], topics: ["brottslighet", "integritet"] },
   { title: "Klimat & energi", ids: ["klimat_prioritet", "karnkraft", "vindkraft", "miljoskatter", "reduktionsplikt", "naturskydd"], topics: ["klimat", "energi", "miljö"] },
@@ -72,14 +72,38 @@ export function equivalenceKey(questionId: string): string {
   return questionId.replace(/_alt\d*$/, "");
 }
 
+/**
+ * En fråga per sakfrågegrupp (variantformuleringar delar positionsvärden —
+ * att räkna båda dubbelviktar gruppen). Används för stabila partikoordinater
+ * på 2D-kartan: partierna ska ligga still oavsett vilken variant en körning drog.
+ */
+export function uniqueGroupQuestions(questions: readonly CatalogQuestion[]): CatalogQuestion[] {
+  const seen = new Set<string>();
+  const out: CatalogQuestion[] = [];
+  for (const q of questions) {
+    const key = equivalenceKey(q.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+  }
+  return out;
+}
+
 function modeById(id: TestModeId): TestMode {
   return TEST_MODES.find((m) => m.id === id) ?? TEST_MODES[1]!;
 }
 
 function sectionFor(q: CatalogQuestion): number {
+  // Explicit id-placering vinner över ämnesmatchning i ALLA sektioner — annars
+  // skuggar en tidigare sektions breda topics (t.ex. "arbetsmarknad", "drivmedel")
+  // frågor som uttryckligen hör hemma senare (arbetskraftsinvandring → Migration,
+  // reduktionsplikt → Klimat & energi).
+  const key = equivalenceKey(q.id);
   for (let i = 0; i < SECTION_DEFS.length; i += 1) {
-    const def = SECTION_DEFS[i]!;
-    if (def.ids.includes(equivalenceKey(q.id)) || def.topics.includes(q.topic)) return i;
+    if (SECTION_DEFS[i]!.ids.includes(key)) return i;
+  }
+  for (let i = 0; i < SECTION_DEFS.length; i += 1) {
+    if (SECTION_DEFS[i]!.topics.includes(q.topic)) return i;
   }
   return SECTION_DEFS.length;
 }

@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { LOW_DISCRIMINATION_THRESHOLD, discriminationByQuestion } from "@/src/catalog/catalog.ts";
 import type { CatalogQuestion, PartyPosition } from "@/src/catalog/types.ts";
 
 interface CatalogData {
   questions: CatalogQuestion[];
   positions: PartyPosition[];
 }
+
+// Samma skala som activeScale; admin-verktyget antar redan -2..2 i positionsvyn.
+const SCALE = { min: -2, max: 2 };
 
 export default function AdminPage() {
   const [token, setToken] = useState("");
@@ -72,9 +76,23 @@ export default function AdminPage() {
   const shownQuestions = (data?.questions ?? []).filter((q) => !onlyDrafts || q.status === "draft");
   const shownPositions = (data?.positions ?? []).filter((p) => !onlyDrafts || p.status === "draft");
 
+  // Diskrimineringsgrad per fråga: hur mycket partierna faktiskt skiljer sig.
+  const discrimination = useMemo(() => {
+    if (!data) return new Map<string, { degree: number | null; spread: number | null }>();
+    return new Map(
+      discriminationByQuestion(data.questions, data.positions, SCALE).map((d) => [
+        d.questionId,
+        { degree: d.degree, spread: d.spread },
+      ]),
+    );
+  }, [data]);
+  const lowDiscriminationCount = [...discrimination.values()].filter(
+    (d) => d.degree !== null && d.degree < LOW_DISCRIMINATION_THRESHOLD,
+  ).length;
+
   return (
     <main className="container">
-      <h1>Admin — granskning</h1>
+      <h1>Admin – granskning</h1>
       <p className="muted">Granska och godkänn AI-föreslagna frågor och partipositioner innan publicering.</p>
 
       <div className="toolbar">
@@ -116,15 +134,26 @@ export default function AdminPage() {
         <>
           <p className="meta">
             {data.questions.length} frågor ({draftQ} utkast) · {data.positions.length} positioner ({draftP} utkast)
+            {lowDiscriminationCount > 0 && (
+              <> · <strong>{lowDiscriminationCount} frågor med låg diskrimineringsgrad (&lt; {LOW_DISCRIMINATION_THRESHOLD})</strong></>
+            )}
           </p>
 
           <h2>Frågor{onlyDrafts ? " (endast utkast)" : ""}</h2>
           {data.questions.length === 0 && <p className="muted">Inga frågor. Klicka &quot;Seed demo-utkast&quot;.</p>}
-          {data.questions.length > 0 && shownQuestions.length === 0 && <p className="muted">Inga utkast kvar — alla frågor godkända.</p>}
-          {shownQuestions.map((q) => (
+          {data.questions.length > 0 && shownQuestions.length === 0 && <p className="muted">Inga utkast kvar – alla frågor godkända.</p>}
+          {shownQuestions.map((q) => {
+            const d = discrimination.get(q.id);
+            const lowD = d?.degree != null && d.degree < LOW_DISCRIMINATION_THRESHOLD;
+            return (
             <div className="question" key={q.id}>
               <div className="topic">
                 {q.id} · {q.topic} · {q.dimension ?? "ingen axel"} · pol {q.polarity}{" "}
+                {d?.degree != null && (
+                  <span className={`statuschip ${lowD ? "draft" : "approved"}`} title={`Spridning över partierna: grad ${d.degree}, max–min ${d.spread}`}>
+                    diskr. {d.degree}{lowD ? " ⚠ låg" : ""}
+                  </span>
+                )}{" "}
                 <span className={`statuschip ${q.status}`}>{q.status}</span>
               </div>
               <div className="text">{q.text}</div>
@@ -135,10 +164,11 @@ export default function AdminPage() {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
 
           <h2>Partipositioner{onlyDrafts ? " (endast utkast)" : ""}</h2>
-          {data.positions.length > 0 && shownPositions.length === 0 && <p className="muted">Inga utkast kvar — alla positioner godkända.</p>}
+          {data.positions.length > 0 && shownPositions.length === 0 && <p className="muted">Inga utkast kvar – alla positioner godkända.</p>}
           {shownPositions.map((p) => (
             <div className="question" key={`${p.questionId}::${p.partyId}`}>
               <div className="topic">

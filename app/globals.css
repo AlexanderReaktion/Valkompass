@@ -239,3 +239,27 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .qcomments-summary { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
 .qcomments-summary ul { margin: 6px 0 0; padding-left: 18px; }
 .qcomments-summary li { margin: 4px 0; font-size: 0.9rem; }
+
+/* ---------- 2026-07: ämnesviktning, rationale, hållning i ord, nyanslager ---------- */
+.boosts { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 14px; margin: 14px 0 4px; }
+.boosts legend { padding: 0 6px; font-size: 0.85rem; color: var(--muted); }
+.chiprow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.chipbtn { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: 0.82rem; cursor: pointer; color: var(--ink); }
+.chipbtn:hover { border-color: var(--accent); }
+.chipbtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.boostchip { display: inline-block; font-size: 0.72rem; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: middle; }
+
+.rationalebox { border-left: 3px solid var(--line); padding: 6px 10px; margin: 8px 0 0; color: var(--muted); font-size: 0.85rem; background: #fffdf9; border-radius: 0 6px 6px 0; }
+
+.bdrow { flex-wrap: wrap; }
+.bdmeta { flex-basis: 100%; color: var(--muted); font-size: 0.8rem; margin: 0 0 2px 2px; }
+.qcbadge { flex: 0 0 auto; display: inline-block; font-size: 0.7rem; border-radius: 999px; padding: 1px 8px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.dimline { display: flex; gap: 6px 14px; flex-wrap: wrap; color: var(--muted); font-size: 0.85rem; margin: 2px 0 8px; }
+.dimline strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.suggest { border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; background: #fffdf9; }
+.suggest ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.suggest li { margin: 0; }
+.suggest .bdq { font-weight: 600; font-size: 0.92rem; display: block; margin-bottom: 4px; }
+.permnote { color: var(--muted); font-size: 0.78rem; margin-top: 6px; }
+.nudge { color: var(--accent); font-size: 0.82rem; }

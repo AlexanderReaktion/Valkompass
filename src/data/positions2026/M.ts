@@ -38,8 +38,8 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: 2, l: "Moderaterna – Friskolor, vinster och det fria skolvalet", u: "https://moderaterna.se/friskolor-vinster-och-det-fria-skolvalet" },
   { q: "vinst_skola", v: 2, l: "M ser ingen anledning att begränsa eller stoppa vinstutdelning från friskolor", u: "https://www.vilarare.se/nyheter/friskolor/sa-sager-partierna-om-friskolor/" },
   { q: "foraldraforsakring", v: 1, l: "Moderaterna driver valfrihet i föräldraförsäkringen", u: "https://moderaterna.se/nyhet/moderaterna-driver-valfrihet-i-foraldraforsakringen/" },
-  // TODO(expertgranskning): omformulerad fråga, ej säkert källverifierad — M står bakom dagens lagstiftning (v.18) och vill modernisera (t.ex. medicinsk abort i hemmet) men nämner inte och driver int
-  { q: "abort", v: 1, l: "Människovärde – Vad anser partierna om abort?", u: "https://manniskovarde.se/vad-anser-politiska-partier-om-abort/" },
+  // Expertgranskning: M står bakom dagens abortlagstiftning och driver inga ytterligare begränsningar av sena aborter → svagt emot skärpning.
+  { q: "abort", v: -1, l: "Människovärde – Vad anser partierna om abort? (M värnar nuvarande lagstiftning)", u: "https://manniskovarde.se/vad-anser-politiska-partier-om-abort/" },
   { q: "hbtqi", v: 1, l: "SVT: Moderaterna vill se över könstillhörighetslagen", u: "https://www.svt.se/nyheter/inrikes/moderaterna-vill-se-over-konstillhorighetslagen" },
   { q: "nato", v: 2, l: "M vill att Sverige blir en aktiv Natomedlem och fördjupar försvarssamarbetet", u: "https://moderaterna.se/nyhet/aktivmedleminato/" },
   { q: "forsvarsanslag", v: 2, l: "Moderaterna: Försvar och krisberedskap (var politik)", u: "https://moderaterna.se/var-politik/forsvar-och-krisberedskap/" },
@@ -47,6 +47,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: 0, l: "SVT: Finansministern öppnar upp för euron", u: "https://www.svt.se/nyheter/inrikes/finansminister-sakerhetslaget-oppnar-upp-for-euron" },
   { q: "public_service", v: 2, l: "SVT: Moderaterna – mindre pengar och smalare utbud i SVT och SR", u: "https://www.svt.se/nyheter/inrikes/moderaterna-mindre-pengar-och-smalare-utbud-i-svt-och-sr" },
   { q: "monarki", v: 2, l: "M vill bevara monarkin som enande kraft över partipolitiken", u: "https://www.republikanskaforeningen.se/opinion/vad-tycker-partierna-om-republik/" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: 2, l: "Fastighetstidningen: Partiernas syn på friare hyror (M för fri hyressättning i nyproduktion; befintligt bestånd hålls utanför)", u: "https://fastighetstidningen.se/nyhet/partiernas-syn-pa-friare-hyror/" },
+  { q: "sjukvard_stat", v: -1, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (M pekar på risker och kostnader med förstatligande)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

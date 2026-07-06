@@ -14,7 +14,7 @@ const rows: PositionRow[] = [
   { q: "arbetsratt", v: 1, l: "KD vill underlätta för företag att anställa och minska regelbördan", u: "https://kristdemokraterna.se/var-politik/politikomraden/ekonomi--skatter" },
   { q: "akassa", v: 1, l: "KD vill ha en a-kassa som kan justeras efter konjunktur", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/socialforsakring" },
   { q: "forsorjningsstod", v: 2, l: "Aktivitetskrav för försörjningsstöd införs (Tidö) 1 juli 2026", u: "https://www.regeringen.se/pressmeddelanden/2025/09/en-reform-for-att-bryta-bidragsberoendet-och-starka-sverige/" },
-  { q: "pension", v: 1, l: "KD prioriterar sänkt skatt på pension, inte höjda skatter", u: "https://kristdemokraterna.se/var-politik/politikomraden/ekonomi--skatter" },
+  { q: "pension", v: 1, l: "KD prioriterar sänkt skatt på pension framför höjda skatter", u: "https://kristdemokraterna.se/var-politik/politikomraden/ekonomi--skatter" },
   { q: "arbetskraftsinvandring", v: 2, l: "KD vill skärpa reglerna och införa lönegolv för arbetskraftsinvandring", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/arbetskraftsinvandring" },
   { q: "asyl_farre", v: 2, l: "KD vill ha en stram och hållbar migrationspolitik med färre asylsökande", u: "https://kristdemokraterna.se/var-politik/politikomraden/migration-och-integration" },
   { q: "flykting_oppen", v: 1, l: "Kristdemokraterna: Migration och integration / Flyktingar", u: "https://kristdemokraterna.se/var-politik/politikomraden/migration-och-integration" },
@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: 1, l: "Kristdemokraterna – Friskolor", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/friskolor" },
   { q: "vinst_skola", v: 2, l: "KD anser att vinstutdelning är acceptabel om skolan håller kvalitet", u: "https://www.vilarare.se/nyheter/politik/kristdemokraterna-nej-till-forbud-mot-vinster/" },
   { q: "foraldraforsakring", v: 2, l: "Kristdemokraterna – Föräldraförsäkring (politik A-Ö)", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/foraldraforsakring" },
-  { q: "abort", v: 2, l: "Kristdemokraterna – Abort (politik A-Ö)", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/abort" },
+  { q: "abort", v: 1, l: "Kristdemokraterna – Abort (politik A-Ö): står bakom lagen men betonar etiska avvägningar kring sena aborter", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/abort" },
   { q: "hbtqi", v: 2, l: "Riksdagen: KD-motion 2025/26:3463 könstillhörighetslagen", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/konstillhorighetslagen_hd023463/" },
   { q: "nato", v: 2, l: "KD ser Nato som främsta garanten för Europas försvar och vill fördjupa samarbetet", u: "https://kristdemokraterna.se/var-politik/politikomraden/forsvar" },
   { q: "forsvarsanslag", v: 2, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: -1, l: "KD: euroanslutning är inte aktuell, folkomröstningen 2003 ska respekteras", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/emu-och-euron" },
   { q: "public_service", v: 0, l: "Kristdemokraterna: Public service (politik A–Ö)", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/public-service" },
   { q: "monarki", v: 2, l: "KD vill bevara monarkin som en viktig symbol för Sverige", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/monarki" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: 1, l: "Fastighetstidningen: Partiernas syn på friare hyror (KD: hyressättningen i nyproduktion behöver bli mer flexibel och spegla efterfrågan)", u: "https://fastighetstidningen.se/nyhet/partiernas-syn-pa-friare-hyror/" },
+  { q: "sjukvard_stat", v: 2, l: "Altinget: KD trotsar kring vårdens förstatligande (KD vill att staten tar över huvudmannaskapet helt)", u: "https://www.altinget.se/artikel/kd-trotsar-kring-vaardens-forstatligande" },
 ];
 
 export default rows;

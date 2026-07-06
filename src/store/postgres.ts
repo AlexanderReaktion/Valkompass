@@ -238,7 +238,7 @@ function dbSsl(): false | { ca: string; rejectUnauthorized: true } | { rejectUna
   if (!caWarned) {
     caWarned = true;
     console.warn(
-      "[store] DATABASE_CA_CERT saknas — TLS-certvalidering är AVSTÄNGD (rejectUnauthorized:false). Sätt DATABASE_CA_CERT för verify-full.",
+      "[store] DATABASE_CA_CERT saknas – TLS-certvalidering är AVSTÄNGD (rejectUnauthorized:false). Sätt DATABASE_CA_CERT för verify-full.",
     );
   }
   return { rejectUnauthorized: false };

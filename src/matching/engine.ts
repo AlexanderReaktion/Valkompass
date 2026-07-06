@@ -170,6 +170,34 @@ export function matchParty(
   };
 }
 
+/** Matchning nedbruten per dimension (ekonomi / värderingar / övrigt). */
+export interface DimensionMatch {
+  readonly dimension: Dimension | "none";
+  readonly percent: number | null;
+  readonly answeredCount: number;
+}
+
+const DIMENSION_ORDER: ReadonlyArray<Dimension | "none"> = ["economic", "galtan", "none"];
+
+/**
+ * Matcha ett parti per dimension med samma metod som totalmatchningen.
+ * Synliggör att totalsiffran väger frågor lika oavsett axel — en användare kan
+ * matcha högt på ekonomi men lågt på värderingar utan att totalsiffran visar det.
+ */
+export function matchPartyByDimension(
+  party: Party,
+  questions: readonly Question[],
+  answers: UserAnswers,
+  scale: Scale,
+  method: MatchMethod = "hybrid",
+): DimensionMatch[] {
+  return DIMENSION_ORDER.map((dimension) => {
+    const qs = questions.filter((q) => (q.dimension ?? "none") === dimension);
+    const m = matchParty(party, qs, answers, scale, method);
+    return { dimension, percent: m.percent, answeredCount: m.answeredCount };
+  });
+}
+
 export interface RankOptions {
   /** Procentenheters tröskel under vilken topp-2 anses "för jämnt". Default 3. */
   readonly closeThreshold?: number;

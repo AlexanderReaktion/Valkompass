@@ -6,6 +6,7 @@ import {
   approveQuestion,
   archiveQuestion,
   approvePosition,
+  discriminationByQuestion,
   lintQuestionText,
   validateForPublish,
   publishCatalog,
@@ -168,6 +169,55 @@ test("validateForPublish: partiledtråd i texten ger varning", () => {
   const positions = [mkPos("q1", "P1", 1), mkPos("q1", "P2", 1)];
   const r = validateForPublish({ questions, parties, positions, scale, minQuestions: 1 });
   assert.ok(r.warnings.some((w) => w.includes("partiledtråd")));
+});
+
+// ---------- diskrimineringsgrad ----------
+
+test("discriminationByQuestion: 0 när partierna är identiska, 1 vid maximal polarisering", () => {
+  const questions = [mkApproved("lika"), mkApproved("polar")];
+  const positions = [
+    mkPos("lika", "P1", 1),
+    mkPos("lika", "P2", 1),
+    mkPos("polar", "P1", 2),
+    mkPos("polar", "P2", -2),
+  ];
+  const d = new Map(discriminationByQuestion(questions, positions, scale).map((e) => [e.questionId, e]));
+  assert.equal(d.get("lika")!.degree, 0);
+  assert.equal(d.get("polar")!.degree, 1);
+  assert.equal(d.get("polar")!.spread, 1);
+});
+
+test("discriminationByQuestion: null när färre än två partier har position", () => {
+  const d = discriminationByQuestion([mkApproved("q1")], [mkPos("q1", "P1", 2)], scale);
+  assert.equal(d[0]!.degree, null);
+  assert.equal(d[0]!.partyCount, 1);
+});
+
+test("validateForPublish: låg diskrimineringsgrad ger varning, hög gör det inte", () => {
+  const questions = [
+    mkApproved("svag", { dimension: "economic", polarity: 1 }),
+    mkApproved("stark", { dimension: "galtan", polarity: -1 }),
+  ];
+  const positions = [
+    mkPos("svag", "P1", 1),
+    mkPos("svag", "P2", 1.2),
+    mkPos("stark", "P1", 2),
+    mkPos("stark", "P2", -2),
+  ];
+  const r = validateForPublish({ questions, parties, positions, scale, minQuestions: 1 });
+  assert.ok(r.warnings.some((w) => w.includes("svag") && w.includes("diskrimineringsgrad")));
+  assert.ok(!r.warnings.some((w) => w.includes("stark") && w.includes("diskrimineringsgrad")));
+});
+
+test("validateForPublish: skev polaritetsbalans inom en dimension ger varning", () => {
+  const questions = [
+    ...[1, 2, 3, 4, 5].map((i) => mkApproved(`e${i}`, { dimension: "economic", polarity: 1 })),
+    mkApproved("g1", { dimension: "galtan", polarity: -1 }),
+  ];
+  const positions = questions.flatMap((q) => [mkPos(q.id, "P1", 2), mkPos(q.id, "P2", -2)]);
+  const r = validateForPublish({ questions, parties, positions, scale, minQuestions: 1 });
+  assert.ok(r.warnings.some((w) => w.includes("Polaritetsbalans (economic)")));
+  assert.ok(!r.warnings.some((w) => w.includes("Polaritetsbalans (galtan)")));
 });
 
 // ---------- publicering ----------

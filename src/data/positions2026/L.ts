@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: 0, l: "Liberalerna – Skolvalet", u: "https://www.liberalerna.se/politik/skolvalet" },
   { q: "vinst_skola", v: -2, l: "Det ska inte längre gå att tjäna pengar; vi vill fasa ut vinstintresset ur skolan", u: "https://www.liberalerna.se/wp-content/uploads/liberalernas-valmanifest-2026-40s-komprimerad.pdf" },
   { q: "foraldraforsakring", v: 1, l: "Liberalerna – Principer för en flexibel och jämställd föräldraförsäkring", u: "https://www.liberalerna.se/wp-content/uploads/focc88racc88ldrafocc88rsacc88kring-1.pdf" },
-  { q: "abort", v: 1, l: "Kvinna till Kvinna – Feministisk valkompass 2026", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
+  { q: "abort", v: -2, l: "Kvinna till Kvinna – Feministisk valkompass 2026 (L står bakom aborträtten, vill grundlagsskydda den)", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
   { q: "hbtqi", v: -1, l: "SVT: Så tycker partierna i frågan om könslagen", u: "https://www.svt.se/nyheter/inrikes/sa-tycker-partierna-i-fragan-om-konslagen" },
   { q: "nato", v: 2, l: "Sverige ska vara en ambitiös och solidarisk allierad i Nato", u: "https://www.liberalerna.se/wp-content/uploads/liberalernas-valmanifest-2026-40s-komprimerad.pdf" },
   { q: "forsvarsanslag", v: 2, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: 2, l: "Ja till euron; nu är det hög tid för Sverige att införa den gemensamma valutan", u: "https://www.liberalerna.se/wp-content/uploads/liberalernas-valmanifest-2026-40s-komprimerad.pdf" },
   { q: "public_service", v: -2, l: "Vi vill öka resurserna till SVT, SR och UR och värna deras oberoende i grundlagen", u: "https://www.liberalerna.se/wp-content/uploads/liberalernas-valmanifest-2026-40s-komprimerad.pdf" },
   { q: "monarki", v: 2, l: "Behålla nuvarande kompromiss om Sveriges statsskick", u: "https://www.liberalerna.se/politik/monarki" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: 1, l: "Fastighetstidningen: Partiernas syn på friare hyror (L vill utveckla bruksvärdessystemet så att efterfrågan syns mer i hyran)", u: "https://fastighetstidningen.se/nyhet/partiernas-syn-pa-friare-hyror/" },
+  { q: "sjukvard_stat", v: -1, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (L vill öka statlig styrning men inte ta över huvudmannaskapet)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

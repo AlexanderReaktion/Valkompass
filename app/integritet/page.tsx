@@ -65,9 +65,9 @@ export default function IntegritetPage() {
       <h2>Dina rättigheter</h2>
       <p>
         Du har rätt till tillgång, radering, dataportabilitet och att återkalla samtycke, samt att klaga
-        till Integritetsskyddsmyndigheten (IMY). Eftersom data inte kopplas till någon direkt identifierare
-        (namn, e-post, IP) utan endast till en slumpmässig session-referens, utövas dessa rättigheter via
-        referensen – inte via dina personuppgifter.
+        till Integritetsskyddsmyndigheten (IMY). Data kopplas till en slumpmässig session-referens i
+        stället för till direkta identifierare (namn, e-post, IP), så dessa rättigheter utövas via
+        referensen.
       </p>
 
       <h3>Självbetjäning via din session-referens</h3>

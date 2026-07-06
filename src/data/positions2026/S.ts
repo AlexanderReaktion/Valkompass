@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: -1, l: "Socialdemokraterna – Friskolor", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/friskolor" },
   { q: "vinst_skola", v: -2, l: "Socialdemokraterna: Marknadsskolan och vinster i skolan", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/marknadskolan-och-vinster-i-skolan" },
   { q: "foraldraforsakring", v: -2, l: "Socialdemokraterna – Föräldraförsäkring (politik A-Ö)", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/foraldraforsakring" },
-  { q: "abort", v: 1, l: "Kvinna till Kvinna – Feministisk valkompass 2026", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
+  { q: "abort", v: -2, l: "Kvinna till Kvinna – Feministisk valkompass 2026 (S står bakom aborträtten, vill grundlagsskydda den)", u: "https://kvinnatillkvinna.se/feministisk-valkompass/" },
   { q: "hbtqi", v: -1, l: "SVT: Så tycker partierna i frågan om könslagen", u: "https://www.svt.se/nyheter/inrikes/sa-tycker-partierna-i-fragan-om-konslagen" },
   { q: "nato", v: 2, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "forsvarsanslag", v: 2, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: -1, l: "Europaportalen: S öppnar för en svensk eurodebatt", u: "https://www.europaportalen.se/2024/05/socialdemokraterna-oppnar-en-svensk-eurodebatt" },
   { q: "public_service", v: -2, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "monarki", v: -2, l: "Socialdemokraterna – Ett nytt partiprogram (kongress 2025)", u: "https://www.socialdemokraterna.se/vart-parti/ny-riktning-for-sverige-2030/ett-nytt-partiprogram" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: -2, l: "Hyresgästföreningen: Vad tycker partierna i bostadspolitiken? (S emot marknadshyror; vill motverka omfördelning från hyresgäster till fastighetsägare)", u: "https://www.hyresgastforeningen.se/var-politik/hyresgasternas-val/vad-tycker-partierna-i-bostadspolitiken/" },
+  { q: "sjukvard_stat", v: -1, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (S emot förstatligande; vill öka statlig styrning på andra sätt)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

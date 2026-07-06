@@ -1,6 +1,6 @@
 /**
- * AI-RESEARCHAT UTKAST — frågebank (45 sakfrågegrupper, 60 formuleringar)
- * + partipositioner (480) inför
+ * AI-RESEARCHAT UTKAST — frågebank (47 sakfrågegrupper, 62 formuleringar)
+ * + partipositioner (496) inför
  * riksdagsvalet 2026.
  *
  * ⚠️ Utkast (status: draft). Positionerna är framtagna av per-parti-research mot
@@ -56,12 +56,13 @@ const QDEFS: QDef[] = [
   { id: "vard_resurser", kind: "dynamic", dimension: "economic", polarity: -1, topic: "sjukvård", text: "Mer skattemedel bör tillföras sjukvården även om det kräver höjda skatter.", rationale: "Salient: vårdens resurser." },
   { id: "friskolor", kind: "structural", dimension: "economic", polarity: 1, topic: "skola", text: "Det fria skolvalet bör behållas i sin nuvarande form.", rationale: "Skolval – höger/vänster." },
   { id: "vinst_skola", kind: "structural", dimension: "economic", polarity: 1, topic: "skola", text: "Vinstutdelning i friskolor bör tillåtas.", rationale: "Vinst i skolan." },
+  { id: "marknadshyror", kind: "structural", dimension: "economic", polarity: 1, topic: "bostad", text: "Fri hyressättning bör tillåtas i nyproducerade hyreslägenheter.", rationale: "Bostadspolitisk skiljelinje som delvis korsar blockgränsen (SD emot, C har tonat ned kravet)." },
   // Värderingar GAL–TAN
   { id: "asyl_farre", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "migration", text: "Sverige bör ta emot färre asylsökande.", rationale: "Central GAL–TAN-fråga." },
   { id: "flykting_oppen", kind: "dynamic", dimension: "galtan", polarity: -1, topic: "migration", text: "Sverige bör ta emot fler kvotflyktingar.", rationale: "Motpol; varierad polaritet." },
   { id: "medborgarskap", kind: "structural", dimension: "galtan", polarity: 1, topic: "integration", text: "Kraven för svenskt medborgarskap bör skärpas.", rationale: "Aktuellt lagförslag 2025/26." },
   { id: "anpassning", kind: "structural", dimension: "galtan", polarity: 1, topic: "integration", text: "Krav på att invandrare lär sig svenska bör skärpas.", rationale: "Integrations-/värderingsfråga." },
-  { id: "atervandring", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "migration", text: "Fler personer utan uppehållstillstånd bör utvisas, med statligt stöd till återvändande.", rationale: "Återvändandepolitik." },
+  { id: "atervandring", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "migration", text: "Fler personer som saknar rätt att vistas i Sverige bör utvisas.", rationale: "Återvändandepolitik. En proposition per påstående; frågan om stöd till frivillig återresa hålls utanför." },
   { id: "anhorig", kind: "structural", dimension: "galtan", polarity: 1, topic: "migration", text: "Möjligheten till anhöriginvandring bör begränsas.", rationale: "Anhöriginvandring." },
   { id: "straff", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "brottslighet", text: "Straffen för grova brott bör skärpas.", rationale: "Lag och ordning – salient." },
   { id: "polisbefogenheter", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "brottslighet", text: "Polisen bör få utökade befogenheter att övervaka även personer som inte är konkret misstänkta.", rationale: "Befogenheter vs integritet." },
@@ -73,14 +74,20 @@ const QDEFS: QDef[] = [
   { id: "miljoskatter", kind: "structural", dimension: "galtan", polarity: -1, topic: "klimat", text: "Miljöskatter på t.ex. flyg och utsläpp bör höjas.", rationale: "Miljöstyrande skatter." },
   { id: "naturskydd", kind: "structural", dimension: "galtan", polarity: -1, topic: "miljö", text: "Mer skog och natur bör skyddas även om det begränsar skogsbruk.", rationale: "Naturskydd vs brukande." },
   { id: "foraldraforsakring", kind: "structural", dimension: "galtan", polarity: -1, topic: "familj", text: "Fler dagar i föräldraförsäkringen bör öronmärkas så att de inte kan överlåtas mellan föräldrarna.", rationale: "Jämställdhet/familj." },
-  { id: "abort", kind: "structural", dimension: "galtan", polarity: -1, topic: "rättigheter", text: "Gränsen för fri abort bör höjas från dagens 18 veckor.", rationale: "Värderingsmarkör." },
+  { id: "abort", kind: "structural", dimension: "galtan", polarity: 1, topic: "rättigheter", text: "Sena aborter (efter vecka 18) bör begränsas ytterligare.", rationale: "Värderingsmarkör; TAN-riktad proposition (polarity 1)." },
   { id: "hbtqi", kind: "structural", dimension: "galtan", polarity: -1, topic: "rättigheter", text: "Det bör bli enklare att juridiskt ändra könstillhörighet.", rationale: "GAL–TAN-markör." },
-  { id: "eu_makt", kind: "structural", dimension: "galtan", polarity: -1, topic: "EU", text: "Mer makt bör överföras från Sverige till EU.", rationale: "EU/suveränitet." },
+  // Utanför kartaxlarna sedan strukturvalideringen 2026-07: EU-motstånd finns både till
+  // vänster (V) och höger (SD), så frågan skalar dåligt på GAL–TAN (Loevingers H 0.11).
+  // Den räknas fortfarande fullt ut i matchningen.
+  { id: "eu_makt", kind: "structural", polarity: -1, topic: "EU", text: "Mer makt bör överföras från Sverige till EU.", rationale: "EU och suveränitet. Frågan ligger utanför kartans axlar eftersom EU-kritik finns i både vänster- och högerpartier; den räknas fullt ut i matchningen." },
   { id: "public_service", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "media", text: "Public service bör få ett smalare uppdrag och mindre finansiering.", rationale: "Synen på public service." },
   { id: "monarki", kind: "structural", dimension: "galtan", polarity: -1, topic: "demokrati", text: "Monarkin bör avskaffas.", rationale: "Republik vs monarki." },
-  // Energi / försvar / EU (ingen kartaxel)
+  // Energi / försvar / EU / vård (ingen kartaxel)
+  // Spegelvänd visning (instämmer = behåll regionerna); kanoniskt värde oförändrat: högre = förstatliga.
+  { id: "sjukvard_stat", kind: "dynamic", polarity: -1, topic: "sjukvård", text: "Regionerna bör även i fortsättningen ha huvudansvaret för sjukvården.", rationale: "Salient vårdfråga efter Vårdansvarskommittén (SOU 2025:62); korsar blockgränsen: KD och SD vill att staten tar över, övriga vill behålla regionalt huvudansvar." },
   { id: "bensinskatt", kind: "dynamic", polarity: 1, topic: "drivmedel", text: "Skatten på bensin och diesel bör sänkas.", rationale: "Aktuell prisfråga." },
-  { id: "bistand", kind: "dynamic", polarity: 1, topic: "bistånd", text: "Sverige bör avskaffa målet att biståndet ska motsvara en procent av BNI.", rationale: "Biståndsnivå." },
+  // Spegelvänd visning (instämmer = värna målet); kanoniskt värde oförändrat: högre = avskaffa.
+  { id: "bistand", kind: "dynamic", polarity: -1, topic: "bistånd", text: "Sverige bör hålla fast vid målet att biståndet ska motsvara en procent av BNI.", rationale: "Enprocentsmålet för bistånd är en tydlig skiljelinje mellan partierna." },
   { id: "arbetskraftsinvandring", kind: "dynamic", polarity: 1, topic: "arbetsmarknad", text: "Reglerna för arbetskraftsinvandring bör skärpas.", rationale: "Aktuellt; tvärgående." },
   { id: "karnkraft", kind: "dynamic", polarity: 1, topic: "energi", text: "Kärnkraften i Sverige bör byggas ut.", rationale: "Energifråga." },
   { id: "vindkraft", kind: "dynamic", polarity: -1, topic: "energi", text: "Utbyggnaden av vindkraft bör påskyndas.", rationale: "Energimix." },
@@ -104,7 +111,7 @@ const VARIANT_QDEFS: QDef[] = [
   { id: "karnkraft_alt", positionSourceId: "karnkraft", kind: "dynamic", polarity: 1, topic: "energi", text: "Ny kärnkraft bör byggas i Sverige.", rationale: "Alternativ formulering av kärnkraftsutbyggnad." },
   { id: "vindkraft_alt", positionSourceId: "vindkraft", kind: "dynamic", polarity: -1, topic: "energi", text: "Utbyggnaden av vindkraft bör gå snabbare än i dag.", rationale: "Alternativ formulering av vindkraftsutbyggnad." },
   { id: "nato_alt", positionSourceId: "nato", kind: "dynamic", polarity: 1, topic: "försvar", text: "Sverige bör knyta sitt försvar ännu närmare NATO.", rationale: "Alternativ formulering av fördjupat NATO-samarbete." },
-  { id: "eu_makt_alt", positionSourceId: "eu_makt", kind: "structural", dimension: "galtan", polarity: -1, topic: "EU", text: "Fler beslut bör fattas gemensamt inom EU även om Sverige lämnar över mer makt.", rationale: "Alternativ formulering av EU-integration." },
+  { id: "eu_makt_alt", positionSourceId: "eu_makt", kind: "structural", polarity: -1, topic: "EU", text: "Fler beslut bör fattas gemensamt inom EU även om Sverige lämnar över mer makt.", rationale: "Alternativ formulering av EU-integration. Utanför kartans axlar av samma skäl som grundfrågan." },
   { id: "public_service_alt", positionSourceId: "public_service", kind: "dynamic", dimension: "galtan", polarity: 1, topic: "media", text: "Public service bör ha ett smalare uppdrag och mindre finansiering.", rationale: "Alternativ formulering av public service-frågan." },
 ];
 

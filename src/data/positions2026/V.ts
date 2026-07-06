@@ -38,7 +38,7 @@ const rows: PositionRow[] = [
   { q: "friskolor", v: -2, l: "Vänsterpartiet – Marknadsskolan", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/marknadsskolan/" },
   { q: "vinst_skola", v: -2, l: "Motion 2024/25:869 En välfärd utan vinstintresse (V)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/en-valfard-utan-vinstintresse_hc02869/" },
   { q: "foraldraforsakring", v: -2, l: "Vänsterpartiet – Föräldraförsäkringen (politik A-Ö)", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/foraldraforsakringen/" },
-  { q: "abort", v: 1, l: "Vänsterpartiet – Abort (politik A-Ö)", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/abort/" },
+  { q: "abort", v: -2, l: "Vänsterpartiet – Abort (politik A-Ö): värna och stärk aborträtten, emot begränsningar", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/abort/" },
   { q: "hbtqi", v: -2, l: "Vänsterpartiet politik A-Ö: HBTQI", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/hbtqi/" },
   { q: "nato", v: -1, l: "Vänsterpartiet – Nato", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/nato/" },
   { q: "forsvarsanslag", v: 1, l: "Regeringen: Blocköverskridande överenskommelse om historisk upprustning (juni 2025)", u: "https://www.regeringen.se/pressmeddelanden/2025/06/blockoverskridande-overenskommelse-nadd-om-historisk-upprustning/" },
@@ -46,6 +46,9 @@ const rows: PositionRow[] = [
   { q: "euro", v: -2, l: "Vänsterpartiet – Euron", u: "https://www.vansterpartiet.se/euval2024/politik/euron/" },
   { q: "public_service", v: -2, l: "Vänsterpartiet – var politik A–Ö", u: "https://www.vansterpartiet.se/var-politik/" },
   { q: "monarki", v: -2, l: "Vänsterpartiet – Monarki", u: "https://www.vansterpartiet.se/var-politik/politik-a-o/monarki/" },
+  // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
+  { q: "marknadshyror", v: -2, l: "Hyresgästföreningen: Vad tycker partierna i bostadspolitiken? (V emot fri hyressättning; drev misstroendet mot marknadshyror 2021)", u: "https://www.hyresgastforeningen.se/var-politik/hyresgasternas-val/vad-tycker-partierna-i-bostadspolitiken/" },
+  { q: "sjukvard_stat", v: -1, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (V emot förstatligande)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
 ];
 
 export default rows;

@@ -18,7 +18,7 @@ export function retentionDeadline(electionDay: string = ELECTION_DAY): string {
 
 export class ConsentMissingError extends Error {
   constructor(sessionId: string) {
-    super(`Saknar uttryckligt samtycke (art. 9) för session ${sessionId} — kommentar lagras inte.`);
+    super(`Saknar uttryckligt samtycke (art. 9) för session ${sessionId} – kommentaren lagras inte.`);
     this.name = "ConsentMissingError";
   }
 }
