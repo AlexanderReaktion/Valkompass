@@ -10,6 +10,7 @@ import type { Pool } from "pg";
 
 import type { CatalogQuestion, PartyPosition, PublishedCatalog } from "../catalog/types.ts";
 import type {
+  AnalysisRecord,
   CatalogStore,
   CommentRecord,
   ConsentRecord,
@@ -84,10 +85,13 @@ class PgResponseStore implements ResponseStore {
     this.pool = pool;
   }
 
+  // ON CONFLICT (id) DO NOTHING på alla save*: idempotenta omkörningar med
+  // samma runId (deterministiska id:n) ska inte dubblera rader.
   async saveResult(r: ResultRecord): Promise<void> {
     await this.pool.query(
       `INSERT INTO results (id, session_id, catalog_version, method, canonical_answers, ranking, created_at, delete_after)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (id) DO NOTHING`,
       [r.id, r.sessionId, r.catalogVersion, r.method, JSON.stringify(r.canonicalAnswers), JSON.stringify(r.ranking), r.createdAt, r.deleteAfter],
     );
   }
@@ -95,7 +99,8 @@ class PgResponseStore implements ResponseStore {
   async saveComment(c: CommentRecord): Promise<void> {
     await this.pool.query(
       `INSERT INTO comments (id, session_id, question_id, text, analysis, created_at, delete_after)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (id) DO NOTHING`,
       [c.id, c.sessionId, c.questionId ?? null, c.text, c.analysis === undefined ? null : JSON.stringify(c.analysis), c.createdAt, c.deleteAfter],
     );
   }
@@ -103,8 +108,18 @@ class PgResponseStore implements ResponseStore {
   async logConsent(c: ConsentRecord): Promise<void> {
     await this.pool.query(
       `INSERT INTO consent_log (id, session_id, type, granted, banner_version, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (id) DO NOTHING`,
       [c.id, c.sessionId, c.type, c.granted, c.bannerVersion, c.createdAt],
+    );
+  }
+
+  async saveAnalysis(a: AnalysisRecord): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO analyses (id, session_id, schema_version, input_hash, model, payload, created_at, delete_after)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (id) DO NOTHING`,
+      [a.id, a.sessionId, a.schemaVersion, a.inputHash, a.model, JSON.stringify(a.analysis), a.createdAt, a.deleteAfter],
     );
   }
 
@@ -123,15 +138,17 @@ class PgResponseStore implements ResponseStore {
   async purgeExpired(now: string): Promise<number> {
     const comments = await this.pool.query("DELETE FROM comments WHERE delete_after <= $1", [now]);
     const results = await this.pool.query("DELETE FROM results WHERE delete_after <= $1", [now]);
-    return (comments.rowCount ?? 0) + (results.rowCount ?? 0);
+    const analyses = await this.pool.query("DELETE FROM analyses WHERE delete_after <= $1", [now]);
+    return (comments.rowCount ?? 0) + (results.rowCount ?? 0) + (analyses.rowCount ?? 0);
   }
 
   async deleteBySession(sessionId: string): Promise<number> {
     // DSAR — radering (art. 17): parametriserade DELETEs för sessionens alla rader.
     const results = await this.pool.query("DELETE FROM results WHERE session_id=$1", [sessionId]);
     const comments = await this.pool.query("DELETE FROM comments WHERE session_id=$1", [sessionId]);
+    const analyses = await this.pool.query("DELETE FROM analyses WHERE session_id=$1", [sessionId]);
     const consents = await this.pool.query("DELETE FROM consent_log WHERE session_id=$1", [sessionId]);
-    return (results.rowCount ?? 0) + (comments.rowCount ?? 0) + (consents.rowCount ?? 0);
+    return (results.rowCount ?? 0) + (comments.rowCount ?? 0) + (analyses.rowCount ?? 0) + (consents.rowCount ?? 0);
   }
 
   async exportBySession(sessionId: string): Promise<SessionExport> {
@@ -139,10 +156,12 @@ class PgResponseStore implements ResponseStore {
     const results = await this.pool.query("SELECT * FROM results WHERE session_id=$1", [sessionId]);
     const comments = await this.pool.query("SELECT * FROM comments WHERE session_id=$1", [sessionId]);
     const consents = await this.pool.query("SELECT * FROM consent_log WHERE session_id=$1", [sessionId]);
+    const analyses = await this.pool.query("SELECT * FROM analyses WHERE session_id=$1", [sessionId]);
     return {
       results: results.rows.map(rowToResult),
       comments: comments.rows.map(rowToComment),
       consents: consents.rows.map(rowToConsent),
+      analyses: analyses.rows.map(rowToAnalysis),
     };
   }
 }
@@ -206,6 +225,19 @@ function rowToResult(row: Record<string, unknown>): ResultRecord {
     method: String(row.method),
     canonicalAnswers: (row.canonical_answers as ResultRecord["canonicalAnswers"]) ?? {},
     ranking: row.ranking,
+    createdAt: toIso(row.created_at),
+    deleteAfter: toIso(row.delete_after),
+  };
+}
+
+export function rowToAnalysis(row: Record<string, unknown>): AnalysisRecord {
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id),
+    schemaVersion: String(row.schema_version),
+    inputHash: String(row.input_hash),
+    model: String(row.model),
+    analysis: row.payload,
     createdAt: toIso(row.created_at),
     deleteAfter: toIso(row.delete_after),
   };

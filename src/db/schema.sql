@@ -86,6 +86,20 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 CREATE INDEX IF NOT EXISTS comments_delete_after_idx ON comments (delete_after);
 
+-- AI-analyser: härledda ur fritext (art. 9-data) – samma samtyckeskrav och gallring.
+CREATE TABLE IF NOT EXISTS analyses (
+  id             uuid PRIMARY KEY,
+  session_id     uuid NOT NULL,
+  schema_version text NOT NULL,
+  input_hash     text NOT NULL,                -- sha-256 (hex) av exakta användarprompten
+  model          text NOT NULL,
+  payload        jsonb NOT NULL,               -- CommentAnalysis (presentabel eller flaggad)
+  created_at     timestamptz NOT NULL,
+  delete_after   timestamptz NOT NULL          -- gallras automatiskt efter valdagen
+);
+CREATE INDEX IF NOT EXISTS analyses_delete_after_idx ON analyses (delete_after);
+CREATE INDEX IF NOT EXISTS analyses_session_idx ON analyses (session_id);
+
 CREATE TABLE IF NOT EXISTS consent_log (
   id             uuid PRIMARY KEY,
   session_id     uuid NOT NULL,
@@ -110,6 +124,9 @@ CREATE INDEX IF NOT EXISTS consent_session_idx ON consent_log (session_id, type,
 --   SELECT cron.schedule(
 --     'valkompass-purge-results', '20 3 * * *',
 --     $$DELETE FROM results WHERE delete_after <= now()$$);
+--   SELECT cron.schedule(
+--     'valkompass-purge-analyses', '25 3 * * *',
+--     $$DELETE FROM analyses WHERE delete_after <= now()$$);
 
 -- ---------- RLS: lås Supabase auto-API:t ----------
 -- Appen ansluter direkt som ägarrollen `postgres` (kringgår RLS). Supabase
@@ -122,4 +139,5 @@ ALTER TABLE party_positions  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE doc_chunks       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE results          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analyses         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consent_log      ENABLE ROW LEVEL SECURITY;

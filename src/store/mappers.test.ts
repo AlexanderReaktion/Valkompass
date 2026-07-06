@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { MemoryCatalogStore, MemoryResponseStore } from "./memory.ts";
-import { rowToComment, rowToPosition, rowToQuestion } from "./postgres.ts";
+import { rowToAnalysis, rowToComment, rowToPosition, rowToQuestion } from "./postgres.ts";
 import type { PublishedCatalog } from "../catalog/types.ts";
 
 // ---------- rowTo* mappers ----------
@@ -123,6 +123,27 @@ test("rowToComment: Date->ISO, valfri questionId/analysis", () => {
   assert.equal("analysis" in minimal, false);
 });
 
+test("rowToAnalysis: Date->ISO och payload som analysis", () => {
+  const a = rowToAnalysis({
+    id: "a1",
+    session_id: "s1",
+    schema_version: "3",
+    input_hash: "deadbeef",
+    model: "claude-test",
+    payload: { summary: "s", flagged: false },
+    created_at: new Date("2026-01-01T00:00:00.000Z"),
+    delete_after: new Date("2026-09-13T23:59:59.999Z"),
+  });
+  assert.equal(a.id, "a1");
+  assert.equal(a.sessionId, "s1");
+  assert.equal(a.schemaVersion, "3");
+  assert.equal(a.inputHash, "deadbeef");
+  assert.equal(a.model, "claude-test");
+  assert.deepEqual(a.analysis, { summary: "s", flagged: false });
+  assert.equal(a.createdAt, "2026-01-01T00:00:00.000Z");
+  assert.equal(a.deleteAfter, "2026-09-13T23:59:59.999Z");
+});
+
 // ---------- MemoryCatalogStore versionsval ----------
 
 function catalog(version: number): PublishedCatalog {
@@ -165,6 +186,16 @@ function seed(store: MemoryResponseStore, sessionId: string) {
       deleteAfter,
     }),
     store.saveComment({ id: `c-${sessionId}`, sessionId, text: "x", createdAt: now, deleteAfter }),
+    store.saveAnalysis({
+      id: `a-${sessionId}`,
+      sessionId,
+      schemaVersion: "3",
+      inputHash: "h",
+      model: "m",
+      analysis: {},
+      createdAt: now,
+      deleteAfter,
+    }),
     store.logConsent({
       id: `k-${sessionId}`,
       sessionId,
@@ -184,25 +215,29 @@ test("exportBySession returnerar bara den efterfrågade sessionens rader", async
   assert.equal(dump.results.length, 1);
   assert.equal(dump.comments.length, 1);
   assert.equal(dump.consents.length, 1);
+  assert.equal(dump.analyses.length, 1);
   assert.equal(dump.results[0]?.sessionId, "s1");
   assert.equal(dump.consents[0]?.sessionId, "s1");
+  assert.equal(dump.analyses[0]?.sessionId, "s1");
 });
 
-test("deleteBySession tar bort resultat+kommentar+samtycke och returnerar antal", async () => {
+test("deleteBySession tar bort resultat+kommentar+analys+samtycke och returnerar antal", async () => {
   const store = new MemoryResponseStore();
   await seed(store, "s1");
   await seed(store, "s2");
   const removed = await store.deleteBySession("s1");
-  assert.equal(removed, 3);
+  assert.equal(removed, 4);
   const dump = await store.exportBySession("s1");
   assert.equal(dump.results.length, 0);
   assert.equal(dump.comments.length, 0);
   assert.equal(dump.consents.length, 0);
+  assert.equal(dump.analyses.length, 0);
   // s2 är orörd.
   const other = await store.exportBySession("s2");
   assert.equal(other.results.length, 1);
   assert.equal(other.comments.length, 1);
   assert.equal(other.consents.length, 1);
+  assert.equal(other.analyses.length, 1);
   // Idempotent: ingen kvar att radera.
   assert.equal(await store.deleteBySession("s1"), 0);
 });

@@ -7,6 +7,7 @@
 
 import type { CatalogQuestion, PartyPosition, PublishedCatalog } from "../catalog/types.ts";
 import type {
+  AnalysisRecord,
   CatalogStore,
   CommentRecord,
   ConsentRecord,
@@ -53,18 +54,25 @@ export class MemoryCatalogStore implements CatalogStore {
 }
 
 export class MemoryResponseStore implements ResponseStore {
-  private results: ResultRecord[] = [];
-  private comments: CommentRecord[] = [];
-  private consents: ConsentRecord[] = [];
+  // Nycklat på id och skrivs bara en gång per id – speglar Postgres
+  // ON CONFLICT (id) DO NOTHING, så idempotenta omkörningar (samma runId)
+  // inte dubblerar rader.
+  private results = new Map<string, ResultRecord>();
+  private comments = new Map<string, CommentRecord>();
+  private consents = new Map<string, ConsentRecord>();
+  private analyses = new Map<string, AnalysisRecord>();
 
   async saveResult(r: ResultRecord): Promise<void> {
-    this.results.push(r);
+    if (!this.results.has(r.id)) this.results.set(r.id, r);
   }
   async saveComment(c: CommentRecord): Promise<void> {
-    this.comments.push(c);
+    if (!this.comments.has(c.id)) this.comments.set(c.id, c);
   }
   async logConsent(c: ConsentRecord): Promise<void> {
-    this.consents.push(c);
+    if (!this.consents.has(c.id)) this.consents.set(c.id, c);
+  }
+  async saveAnalysis(a: AnalysisRecord): Promise<void> {
+    if (!this.analyses.has(a.id)) this.analyses.set(a.id, a);
   }
   async hasConsent(sessionId: string, type: ConsentType): Promise<boolean> {
     // Senast loggade samtycke för (session, typ) avgör. Vid samma createdAt
@@ -72,7 +80,7 @@ export class MemoryResponseStore implements ResponseStore {
     // Obs: i dag finns ingen återkallandeväg för article9_freetext, så detta är
     // tills vidare endast latent (samma intent dokumenteras i postgres.ts).
     let latest: ConsentRecord | undefined;
-    for (const c of this.consents) {
+    for (const c of this.consents.values()) {
       if (c.sessionId === sessionId && c.type === type) {
         if (!latest || c.createdAt >= latest.createdAt) latest = c;
       }
@@ -80,30 +88,44 @@ export class MemoryResponseStore implements ResponseStore {
     return latest?.granted ?? false;
   }
   async purgeExpired(now: string): Promise<number> {
-    const before = this.comments.length + this.results.length;
-    this.comments = this.comments.filter((c) => c.deleteAfter > now);
-    this.results = this.results.filter((r) => r.deleteAfter > now);
-    return before - this.comments.length - this.results.length;
+    let removed = 0;
+    for (const map of [this.comments, this.results, this.analyses] as const) {
+      for (const [id, rec] of map) {
+        if (rec.deleteAfter <= now) {
+          map.delete(id);
+          removed += 1;
+        }
+      }
+    }
+    return removed;
   }
 
   async deleteBySession(sessionId: string): Promise<number> {
-    const before = this.results.length + this.comments.length + this.consents.length;
-    this.results = this.results.filter((r) => r.sessionId !== sessionId);
-    this.comments = this.comments.filter((c) => c.sessionId !== sessionId);
-    this.consents = this.consents.filter((c) => c.sessionId !== sessionId);
-    return before - (this.results.length + this.comments.length + this.consents.length);
+    let removed = 0;
+    for (const map of [this.results, this.comments, this.consents, this.analyses] as const) {
+      for (const [id, rec] of map) {
+        if (rec.sessionId === sessionId) {
+          map.delete(id);
+          removed += 1;
+        }
+      }
+    }
+    return removed;
   }
 
   async exportBySession(sessionId: string): Promise<SessionExport> {
+    const bySession = <T extends { sessionId: string }>(map: Map<string, T>): T[] =>
+      [...map.values()].filter((r) => r.sessionId === sessionId);
     return {
-      results: this.results.filter((r) => r.sessionId === sessionId),
-      comments: this.comments.filter((c) => c.sessionId === sessionId),
-      consents: this.consents.filter((c) => c.sessionId === sessionId),
+      results: bySession(this.results),
+      comments: bySession(this.comments),
+      consents: bySession(this.consents),
+      analyses: bySession(this.analyses),
     };
   }
 
   /** Testhjälp: läsvy över lagrade kommentarer (ersätter borttagna listComments). */
   _commentsForTest(): readonly CommentRecord[] {
-    return [...this.comments];
+    return [...this.comments.values()];
   }
 }

@@ -13,6 +13,18 @@ import { TEST_MODES, buildTestPlan, uniqueGroupQuestions } from "@/src/kompass/t
 import type { TestModeId } from "@/src/kompass/testPlan.ts";
 import { stanceLabel } from "@/src/kompass/stance.ts";
 import { RUN_STATE_VERSION, decodeRunState, encodeRunState } from "@/src/kompass/permalink.ts";
+import { MAX_COMMENT_LENGTH, charCounterLabel, excludedCommentSummary, sentimentLabel } from "@/src/kompass/analysisView.ts";
+import {
+  ANALYSIS_STORE_KEY,
+  ANALYSIS_STORE_VERSION,
+  SESSION_STORAGE_KEY,
+  answersFingerprint,
+  isAnalysisStale,
+  parseStoredAnalysis,
+  runFingerprint,
+  serializeStoredAnalysis,
+} from "@/src/kompass/analysisStorage.ts";
+import type { AnswerTuple, StoredAnalysis } from "@/src/kompass/analysisStorage.ts";
 
 interface Props {
   catalog: PublishedCatalog;
@@ -70,6 +82,29 @@ const INFLUENCE: Record<string, string> = {
 /** Uppviktning för ämnen användaren markerat som extra viktiga. */
 const TOPIC_BOOST = 1.5;
 const HISTORY_KEY = "kompass-history-v1";
+/** Klienttimeout för AI-anropet – något över serverns maxDuration (120 s). */
+const ANALYZE_TIMEOUT_MS = 150_000;
+
+/** Tillstånd för AI-tolkningen, inkl. runId (idempotent retry) och fingeravtryck (stale). */
+interface AiState {
+  loading: boolean;
+  analysis: CommentAnalysis | null;
+  note: string | null;
+  error: string | null;
+  /** runId för senaste körningen; återanvänds vid "Försök igen" så servern inte dubblerar rader. */
+  runId: string | null;
+  excluded: readonly { questionId: string | null }[];
+  /** Avtryck av svar+kommentarer när analysen skapades – för stale-detektering. */
+  fingerprint: string | null;
+}
+
+const AI_IDLE: AiState = { loading: false, analysis: null, note: null, error: null, runId: null, excluded: [], fingerprint: null };
+
+/** Teckenräknare för kommentarfält – syns först nära maxgränsen. */
+function CharCount({ length }: { length: number }) {
+  const label = charCounterLabel(length);
+  return label ? <span className="charcount">{label}</span> : null;
+}
 
 function agree(a: number): { t: string; c: string } {
   return a >= 0.8 ? { t: "Överens", c: "ag-high" } : a >= 0.5 ? { t: "Delvis", c: "ag-mid" } : { t: "Oense", c: "ag-low" };
@@ -216,10 +251,10 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   // Beständig sessionsreferens: stabil över omladdningar så användaren kan begära radering.
   const [sessionId] = useState(() => {
     try {
-      const saved = localStorage.getItem("kompass-session");
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
       if (saved) return saved;
       const fresh = crypto.randomUUID();
-      localStorage.setItem("kompass-session", fresh);
+      localStorage.setItem(SESSION_STORAGE_KEY, fresh);
       return fresh;
     } catch {
       return crypto.randomUUID();
@@ -230,9 +265,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
   const [commentOpen, setCommentOpen] = useState<Record<string, boolean>>({});
   const [consent, setConsent] = useState(false);
   const [shared, setShared] = useState<"clipboard" | "shared" | false>(false);
-  const [ai, setAi] = useState<{ loading: boolean; analysis: CommentAnalysis | null; note: string | null; error: string | null }>({
-    loading: false, analysis: null, note: null, error: null,
-  });
+  const [ai, setAi] = useState<AiState>(AI_IDLE);
   // Historik överlever sidladdning: "gör om och jämför" är kompassens kärnlöfte.
   const [history, setHistory] = useState<RunSnapshot[]>(loadHistory);
 
@@ -347,18 +380,24 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
 
   // ---------- permalink ----------
 
-  function permalinkFragment(): string {
-    const a: Record<string, readonly [number | null, number]> = {};
+  // Körningens svar som tupler [värde, vikt] – delas av permalänken och
+  // analysens fingeravtryck så båda alltid beskriver samma underlag.
+  function answerTuples(): Record<string, AnswerTuple> {
+    const a: Record<string, AnswerTuple> = {};
     for (const q of plan.selectedQuestions) {
       const s = answers[q.id];
       if (s) a[q.id] = [s.value, s.weight];
     }
+    return a;
+  }
+
+  function permalinkFragment(): string {
     return encodeRunState({
       version: RUN_STATE_VERSION,
       mode,
       seed: runSeed,
       method,
-      answers: a,
+      answers: answerTuples(),
       ...(boosts.size > 0 ? { boosts: [...boosts] } : {}),
     });
   }
@@ -381,12 +420,36 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
       setMethod(state.method);
       setAnswers(Object.fromEntries(Object.entries(state.answers).map(([id, [value, weight]]) => [id, { value, weight }])));
       if (state.boosts) setBoosts(new Set(state.boosts));
+      // Återställ sparad tolkning + kommentarer när de hör till exakt dessa svar.
+      // Kommentarerna sparades lokalt först efter inskick med samtycke; länken
+      // (fragmentet) förblir svarsenbart – kommentarer och analys lämnar aldrig enheten.
+      const stored = parseStoredAnalysis(localStorage.getItem(ANALYSIS_STORE_KEY));
+      if (
+        stored &&
+        stored.catalogVersion === catalog.version &&
+        stored.answersFingerprint === answersFingerprint(state.answers)
+      ) {
+        setComments({ ...stored.comments });
+        setComment(stored.overallComment);
+        setAi({
+          loading: false,
+          analysis: stored.analysis,
+          note: stored.analysisNote,
+          error: null,
+          runId: stored.runId,
+          excluded: stored.excludedComments,
+          fingerprint: stored.runFingerprint,
+        });
+        // Samtycket återställs medvetet INTE: en ny tolkning är en ny behandling
+        // och kräver en ny aktiv bock.
+      }
       setStarted(true);
       setStep(Number.MAX_SAFE_INTEGER); // direkt till resultatet; klampas mot sections.length i renderingen
       /* eslint-enable react-hooks/set-state-in-effect */
     } catch {
       /* trasig länk ignoreras tyst — användaren landar på intron */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- engångskörning vid mount (gated av restoredRef)
   }, []);
 
   // Håll URL-fragmentet i synk på resultatsidan så omladdning/bokmärke/delning
@@ -401,29 +464,88 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
     }
   });
 
-  async function submitComment() {
+  // Spara tolkningen + de inskickade kommentarerna lokalt (art. 9: sker först
+  // EFTER inskick med uttryckligt samtycke, och enbart på användarens egen enhet).
+  function persistAnalysis(state: AiState, fingerprint: string) {
+    try {
+      const stored: StoredAnalysis = {
+        version: ANALYSIS_STORE_VERSION,
+        sessionId,
+        runId: state.runId,
+        answersFingerprint: answersFingerprint(answerTuples()),
+        runFingerprint: fingerprint,
+        comments: Object.fromEntries(Object.entries(comments).filter(([, t]) => t.trim())),
+        overallComment: comment.trim() ? comment : "",
+        analysis: state.analysis,
+        analysisNote: state.note,
+        excludedComments: [...state.excluded],
+        catalogVersion: catalog.version,
+        timestamp: new Date().toISOString(),
+      };
+      localStorage.setItem(ANALYSIS_STORE_KEY, serializeStoredAnalysis(stored));
+    } catch {
+      /* t.ex. privat läge utan lagring — tolkningen blir sessionslokal */
+    }
+  }
+
+  async function runAnalysis(analysisRunId: string) {
     const items = commentItems();
-    if (items.length === 0 || !consent) return;
-    setAi({ loading: true, analysis: null, note: null, error: null });
+    if (items.length === 0 || !consent || ai.loading) return;
+    // Fingeravtryck av exakt det underlag som skickas – jämförs senare för stale-markering.
+    const fingerprint = runFingerprint(answerTuples(), comments, comment);
+    // Tidigare tolkning behålls synlig (stale-markerad) medan den nya skapas.
+    setAi((s) => ({ ...s, loading: true, error: null, runId: analysisRunId }));
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          sessionId, method,
+          sessionId, method, runId: analysisRunId,
           answers: Object.fromEntries(plan.selectedQuestions
             .filter((q) => answers[q.id])
             .map((q) => [q.id, { value: answers[q.id]!.value, weight: effWeight(q.id, answers[q.id]!.weight) }])),
           comments: items, consent: { article9: true },
         }),
+        // Klienttimeout: landa i fel+retry i stället för att snurra för evigt.
+        signal: AbortSignal.timeout(ANALYZE_TIMEOUT_MS),
       });
-      const data = (await res.json()) as { error?: string; analysis?: CommentAnalysis | null; analysisNote?: string | null };
-      if (!res.ok) { setAi({ loading: false, analysis: null, note: null, error: data.error ?? "Något gick fel." }); return; }
-      setAi({ loading: false, analysis: data.analysis ?? null, note: data.analysisNote ?? null, error: null });
-    } catch {
-      setAi({ loading: false, analysis: null, note: null, error: "Nätverksfel." });
+      const data = (await res.json()) as {
+        error?: string;
+        analysis?: CommentAnalysis | null;
+        analysisNote?: string | null;
+        excludedComments?: { questionId: string | null }[];
+      };
+      if (!res.ok) {
+        setAi((s) => ({ ...s, loading: false, error: data.error ?? "Något gick fel." }));
+        return;
+      }
+      const next: AiState = {
+        loading: false,
+        analysis: data.analysis ?? null,
+        note: data.analysisNote ?? null,
+        error: null,
+        runId: analysisRunId,
+        excluded: data.excludedComments ?? [],
+        fingerprint,
+      };
+      setAi(next);
+      persistAnalysis(next, fingerprint);
+    } catch (err) {
+      const timedOut = (err as { name?: string })?.name === "TimeoutError" || (err as { name?: string })?.name === "AbortError";
+      setAi((s) => ({
+        ...s,
+        loading: false,
+        error: timedOut
+          ? "Tolkningen tog för lång tid och avbröts."
+          : "Nätverksfel. Kontrollera anslutningen.",
+      }));
     }
   }
+
+  // Ny körning = nytt runId. Retry av en misslyckad körning återanvänder runId
+  // (idempotent på servern: inga dubblerade rader, AI-anropet kan köras om).
+  const submitComment = () => runAnalysis(crypto.randomUUID());
+  const retryAnalysis = () => runAnalysis(ai.runId ?? crypto.randomUUID());
 
   async function share() {
     const top = result.ranked.matches.slice(0, 3).map((m, i) => `${i + 1}. ${m.partyName} ${m.percent ?? "–"}%`).join(" · ");
@@ -489,7 +611,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
     setConsent(false);
     setShared(false);
     setExpanded(null);
-    setAi({ loading: false, analysis: null, note: null, error: null });
+    setAi(AI_IDLE);
     setRunId(crypto.randomUUID());
     if (nextSeed) setRunSeed(nextSeed);
     try {
@@ -535,6 +657,10 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
           Välj testlängd och få ett balanserat urval ur en frågebank med {plan.totalQuestionGroups} sakfrågegrupper
           och {plan.totalFormulations} formuleringar. Du kan göra om samma test eller ta en ny variant
           och jämföra om du hamnar ungefär på samma plats.
+        </p>
+        <p className="lead-sm">
+          Du kan också kommentera dina svar i fritext – kommentarerna berikar AI-tolkningen av din profil och
+          kräver ett separat samtycke.
         </p>
         <div className="modegrid" role="radiogroup" aria-label="Välj testlängd">
           {TEST_MODES.map((m) => (
@@ -604,6 +730,11 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
       (snapshot.topPartyId === previous.topPartyId || topOverlap >= 2) &&
       (distance == null || distance <= 0.35);
     const boostedTitles = [...boosts];
+    // Tolkningen blir inaktuell så fort svar eller kommentarer ändras efter att den skapades.
+    const analysisStale =
+      ai.analysis !== null && isAnalysisStale(ai.fingerprint, runFingerprint(answerTuples(), comments, comment));
+    const excludedSummary = excludedCommentSummary(ai.excluded, qText);
+    const canAnalyze = consent && commentItems().length > 0 && !ai.loading;
 
     return (
       <main className="container">
@@ -795,14 +926,18 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                             Du svarade {answerLabel?.toLowerCase() ?? "–"}{a?.weight === 2 ? " och markerade frågan som ★ viktig" : ""}.
                           </span>{" "}
                           {open ? (
-                            <textarea
-                              className="qcommentbox"
-                              aria-label={`Kommentar till: ${q.text}`}
-                              placeholder="Varför? Vad avgjorde ditt svar?"
-                              rows={2}
-                              value={comments[q.id] ?? ""}
-                              onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
-                            />
+                            <>
+                              <textarea
+                                className="qcommentbox"
+                                aria-label={`Kommentar till: ${q.text}`}
+                                placeholder="Varför? Vad avgjorde ditt svar?"
+                                rows={2}
+                                maxLength={MAX_COMMENT_LENGTH}
+                                value={comments[q.id] ?? ""}
+                                onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
+                              />
+                              <CharCount length={(comments[q.id] ?? "").length} />
+                            </>
                           ) : (
                             <button type="button" className="linkbtn" onClick={() => setCommentOpen((s) => ({ ...s, [q.id]: true }))}>
                               + Utveckla ditt svar
@@ -814,17 +949,32 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                   </ul>
                 </div>
               )}
-              {Object.entries(comments).filter(([, t]) => t.trim()).length > 0 && (
+              {Object.entries(comments).filter(([, t]) => t !== "").length > 0 && (
                 <div className="qcomments-summary">
-                  <p className="meta">Dina frågekommentarer (vägs in i tolkningen):</p>
+                  <p className="meta">
+                    Dina frågekommentarer (vägs in i tolkningen). Redigera direkt i rutan; töm rutan för att ta
+                    bort kommentaren.
+                  </p>
                   <ul>
-                    {Object.entries(comments).filter(([, t]) => t.trim()).map(([id, t]) => (
-                      <li key={id}><strong>{qText[id]}</strong> – {t}</li>
+                    {Object.entries(comments).filter(([, t]) => t !== "").map(([id, t]) => (
+                      <li key={id}>
+                        <strong>{qText[id] ?? id}</strong>
+                        <textarea
+                          className="qcommentbox"
+                          aria-label={`Kommentar till: ${qText[id] ?? id}`}
+                          rows={2}
+                          maxLength={MAX_COMMENT_LENGTH}
+                          value={t}
+                          onChange={(e) => setComments((s) => ({ ...s, [id]: e.target.value }))}
+                        />
+                        <CharCount length={t.length} />
+                      </li>
                     ))}
                   </ul>
                 </div>
               )}
-              <textarea className="commentbox" aria-labelledby="kommentar-rubrik" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Övergripande kommentar (valfritt) – vad är viktigast för dig, och varför?" rows={4} />
+              <textarea className="commentbox" aria-labelledby="kommentar-rubrik" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Övergripande kommentar (valfritt) – vad är viktigast för dig, och varför?" rows={4} maxLength={MAX_COMMENT_LENGTH} />
+              <CharCount length={comment.length} />
               <label className="consent">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                 <span>
@@ -834,26 +984,56 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                   återkallas. Läs mer i vår <a href="/integritet">integritetspolicy</a>. (GDPR art. 9)
                 </span>
               </label>
-              <button type="button" className="btn btn-primary" onClick={submitComment} aria-busy={ai.loading} disabled={ai.loading || !consent || commentItems().length === 0}>
-                {ai.loading ? "Tolkar…" : "Skapa min tolkning"}
+              <button type="button" className="btn btn-primary" onClick={submitComment} aria-busy={ai.loading} disabled={!canAnalyze}>
+                {ai.loading ? "Tolkar…" : ai.analysis ? "Tolka om" : "Skapa min tolkning"}
               </button>
               {commentItems().length === 0 && (
                 <p className="meta" style={{ marginTop: 6 }}>Skriv minst en kommentar (på en fråga ovan eller övergripande) så kan tolkningen skapas.</p>
               )}
+              {commentItems().length > 0 && !consent && (
+                <p className="meta" style={{ marginTop: 6 }}>
+                  Bara samtycket saknas – kryssa i rutan ovan så kan tolkningen skapas. Kommentarer kan avslöja
+                  politiska åsikter och behandlas därför först efter uttryckligt samtycke.
+                </p>
+              )}
+              {ai.loading && (
+                <div className="aiwait">
+                  <span className="spinner" aria-hidden="true" />
+                  <span>Tolkningen tar ofta upp till en minut. Matchningen ovan är redan klar och påverkas inte.</span>
+                </div>
+              )}
               {/* Diskret, artig live-region som annonserar AI-status för skärmläsare. */}
               <p className="sr-only" role="status" aria-live="polite">
-                {ai.loading ? "Tolkar…" : ai.analysis ? "Tolkning klar" : ""}
+                {ai.loading ? "Tolkar…" : ai.error ? "Tolkningen misslyckades" : ai.analysis ? "Tolkning klar" : ""}
               </p>
-              {ai.error && <p className="close" role="alert">{ai.error}</p>}
-              {ai.note && <p className="meta">{ai.note}</p>}
+              {ai.error && (
+                <div className="note notesplit" role="alert">
+                  <span>{ai.error}</span>
+                  <button type="button" className="btn" onClick={retryAnalysis} disabled={ai.loading}>Försök igen</button>
+                </div>
+              )}
+              {/* Servern lägger uteslutna kommentarer i analysisNote; när analysen visas
+                  renderas i stället den strukturerade varianten nedan (ingen dubblering). */}
+              {ai.note && !(ai.analysis && ai.excluded.length > 0) && <p className="meta">{ai.note}</p>}
+              {excludedSummary && (
+                <div className="note" role="status">{excludedSummary}</div>
+              )}
+              {ai.analysis && analysisStale && (
+                <div className="note notesplit">
+                  <span>Tolkningen gäller en tidigare version av dina svar.</span>
+                  <button type="button" className="btn" onClick={submitComment} disabled={!canAnalyze}>Tolka om</button>
+                </div>
+              )}
               {ai.analysis && (
-                <div className="analysis">
+                <div className={`analysis${analysisStale ? " stale" : ""}`}>
                   <span className="aibadge">AI-genererad tolkning – siffran räknas separat</span>
                   <p>{ai.analysis.summary}</p>
                   {ai.analysis.themes.length > 0 && (
                     <p className="chips">{ai.analysis.themes.map((t) => <span className="chip" key={t}>{t}</span>)}</p>
                   )}
-                  <p className="meta">Ton: {ai.analysis.sentiment}</p>
+                  {sentimentLabel(ai.analysis.sentiment) && (
+                    <p className="meta">Ton i kommentarerna: {sentimentLabel(ai.analysis.sentiment)}</p>
+                  )}
                   <div className="influencebox">
                     <h3>Så bidrog dina kommentarer</h3>
                     <p className="meta">Matchningsprocenten och partiernas rangordning räknas enbart på dina skalsvar. Kommentarerna formade den AI-genererade tolkningen, och frågorna de kopplades till är märkta med 💬 i partilistan ovan.</p>
@@ -898,7 +1078,7 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
                 </p>
                 <p className="meta">
                   Spara referensen om du senare vill begära radering av dina sparade svar och kommentarer
-                  (via <a href="/api/session/delete">/api/session/delete</a>).
+                  på sidan <a href={`/radera#ref=${sessionId}`}>Radera dina uppgifter</a>.
                 </p>
               </div>
             </div>
@@ -962,14 +1142,18 @@ export default function Kompass({ catalog, parties, scale, sources, isPublished 
             />
             <div className="qcomment">
               {showBox ? (
-                <textarea
-                  className="qcommentbox"
-                  aria-label={`Kommentar till: ${q.text}`}
-                  placeholder="Varför svarade du så? Ditt resonemang vägs in i AI-tolkningen av din profil (procenten räknas enbart på skalsvaren)."
-                  rows={2}
-                  value={comments[q.id] ?? ""}
-                  onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
-                />
+                <>
+                  <textarea
+                    className="qcommentbox"
+                    aria-label={`Kommentar till: ${q.text}`}
+                    placeholder="Varför svarade du så? Ditt resonemang vägs in i AI-tolkningen av din profil (procenten räknas enbart på skalsvaren)."
+                    rows={2}
+                    maxLength={MAX_COMMENT_LENGTH}
+                    value={comments[q.id] ?? ""}
+                    onChange={(e) => setComments((s) => ({ ...s, [q.id]: e.target.value }))}
+                  />
+                  <CharCount length={(comments[q.id] ?? "").length} />
+                </>
               ) : (
                 <button type="button" className="linkbtn" onClick={() => setCommentOpen((s) => ({ ...s, [q.id]: true }))}>
                   + Utveckla ditt svar

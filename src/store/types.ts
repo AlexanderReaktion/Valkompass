@@ -46,6 +46,24 @@ export interface ConsentRecord {
   readonly createdAt: string; // ISO 8601
 }
 
+/**
+ * Sparad AI-analys – härledd ur fritext (art. 9-data), samma samtyckeskrav
+ * och gallring som kommentarerna. Regenererbar; ändrar aldrig matchningssiffran.
+ */
+export interface AnalysisRecord {
+  readonly id: string;
+  readonly sessionId: string;
+  /** Prompt-/schemaversion (ANALYSIS_SCHEMA_VERSION) för reproducerbarhet. */
+  readonly schemaVersion: string;
+  /** sha-256 (hex) av exakta user-prompten som gav analysen. */
+  readonly inputHash: string;
+  readonly model: string;
+  /** CommentAnalysis-JSON, presentabel eller flaggad. */
+  readonly analysis: unknown;
+  readonly createdAt: string; // ISO 8601
+  readonly deleteAfter: string; // ISO 8601 – auto-gallras efter detta
+}
+
 /** Katalog: publicerade (frysta) kataloger + admin-utkast. */
 export interface CatalogStore {
   getPublished(election: string): Promise<PublishedCatalog | null>;
@@ -61,20 +79,26 @@ export interface SessionExport {
   readonly results: ResultRecord[];
   readonly comments: CommentRecord[];
   readonly consents: ConsentRecord[];
+  readonly analyses: AnalysisRecord[];
 }
 
-/** Svar, kommentarer och samtycke. */
+/**
+ * Svar, kommentarer, samtycke och analyser. save*-metoderna är replay-toleranta:
+ * en rad med redan förekommande id ignoreras tyst (Postgres: ON CONFLICT (id)
+ * DO NOTHING), så idempotenta omkörningar med samma runId inte dubblerar rader.
+ */
 export interface ResponseStore {
   saveResult(record: ResultRecord): Promise<void>;
   saveComment(record: CommentRecord): Promise<void>;
   logConsent(record: ConsentRecord): Promise<void>;
+  saveAnalysis(record: AnalysisRecord): Promise<void>;
   /** Senast loggade samtycke för (session, typ) avgör. */
   hasConsent(sessionId: string, type: ConsentType): Promise<boolean>;
-  /** Tar bort kommentarer vars deleteAfter passerat. Returnerar antal borttagna. */
+  /** Tar bort kommentarer, resultat och analyser vars deleteAfter passerat. Returnerar antal borttagna. */
   purgeExpired(now: string): Promise<number>;
   /**
-   * DSAR — radering (art. 17): tar bort resultat, kommentarer och samtyckeslogg
-   * för sessionen. Returnerar totalt antal borttagna rader.
+   * DSAR – radering (art. 17): tar bort resultat, kommentarer, analyser och
+   * samtyckeslogg för sessionen. Returnerar totalt antal borttagna rader.
    */
   deleteBySession(sessionId: string): Promise<number>;
   /** DSAR — export (art. 15): allt lagrat för sessionen. */

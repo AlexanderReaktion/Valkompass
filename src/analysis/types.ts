@@ -6,7 +6,8 @@
  * Outputs garanterar formen; logga prompt-/schema-version + input-hash per körning.
  */
 
-import type { Dimension } from "../matching/types.ts";
+import type { Coordinates, Dimension } from "../matching/types.ts";
+import type { StanceLabel } from "../kompass/stance.ts";
 
 export type Sentiment = "positive" | "neutral" | "negative" | "mixed";
 export type Leaning = "left" | "right" | "gal" | "tan" | "unclear";
@@ -28,6 +29,13 @@ export interface CommentInfluence {
   readonly note: string;
 }
 
+/** En enskild olämplig kommentar som utesluts ur analysen. */
+export interface CommentFlag {
+  /** 1-baserat: kommentarens nummer i den numrerade listan i prompten. */
+  readonly commentIndex: number;
+  readonly reason: string;
+}
+
 export interface CommentAnalysis {
   readonly summary: string;
   readonly themes: readonly string[];
@@ -37,7 +45,9 @@ export interface CommentAnalysis {
   readonly policySignals: readonly PolicySignal[];
   /** Hur kommentarerna påverkade det additiva AI-lagret. Ändrar aldrig matchningssiffran. */
   readonly commentInfluences: readonly CommentInfluence[];
-  /** true = olämpligt/skadligt innehåll; ska inte visas eller vägas in. */
+  /** Enskilt flaggade kommentarer; analysfälten bygger enbart på de övriga. */
+  readonly commentFlags: readonly CommentFlag[];
+  /** true ENDAST när ingen användbar kommentar återstår (alla flaggade). */
   readonly flagged: boolean;
   readonly flagReason: string;
 }
@@ -49,10 +59,34 @@ export interface CommentItem {
   readonly text: string;
 }
 
+/** Ett besvarat skalsvar i ord, för grundade AI-tolkningar. */
+export interface AnsweredQuestion {
+  readonly questionId: string;
+  readonly questionText: string;
+  /** Hållning på den VISADE formuleringen, eller "vet ej". */
+  readonly stance: StanceLabel | "vet ej";
+  readonly weight: number;
+  /** true när användaren också kommenterade frågan. */
+  readonly hasComment: boolean;
+}
+
+export interface TopMatch {
+  readonly partyId: string;
+  readonly partyName: string;
+  readonly percent: number | null;
+  /** Matchning per dimension, när den skickas med. */
+  readonly economicPercent?: number | null;
+  readonly galtanPercent?: number | null;
+}
+
 export interface AnalyzeInput {
   /** Alla väljarens kommentarer (per-fråga + ev. övergripande) som ska vägas in. */
   readonly comments: readonly CommentItem[];
-  readonly topMatches: readonly { partyId: string; partyName: string; percent: number | null }[];
+  /** Väljarens skalsvar i ord (hållning + vikt). Tom lista när inga skickats med. */
+  readonly answers: readonly AnsweredQuestion[];
+  readonly topMatches: readonly TopMatch[];
+  /** Väljarens 2D-position per axel, normerad till [-1, 1]. */
+  readonly userCoordinates?: Coordinates;
   readonly questions: readonly { id: string; text: string }[];
 }
 
@@ -61,7 +95,7 @@ export interface CommentAnalyzer {
 }
 
 /** Prompt-/schema-version att logga tillsammans med varje analys. */
-export const ANALYSIS_SCHEMA_VERSION = "2";
+export const ANALYSIS_SCHEMA_VERSION = "3";
 
 /** JSON Schema för Structured Outputs (alla fält required, additionalProperties:false). */
 export const COMMENT_ANALYSIS_SCHEMA = {
@@ -101,9 +135,25 @@ export const COMMENT_ANALYSIS_SCHEMA = {
         additionalProperties: false,
       },
     },
+    commentFlags: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          commentIndex: {
+            type: "integer",
+            minimum: 1,
+            description: "1-baserat: kommentarens nummer i den numrerade listan.",
+          },
+          reason: { type: "string" },
+        },
+        required: ["commentIndex", "reason"],
+        additionalProperties: false,
+      },
+    },
     flagged: { type: "boolean" },
     flagReason: { type: "string" },
   },
-  required: ["summary", "themes", "sentiment", "relatedQuestionIds", "policySignals", "commentInfluences", "flagged", "flagReason"],
+  required: ["summary", "themes", "sentiment", "relatedQuestionIds", "policySignals", "commentInfluences", "commentFlags", "flagged", "flagReason"],
   additionalProperties: false,
 } as const;

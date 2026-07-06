@@ -6,7 +6,7 @@
  * injiceras (now, genId) för deterministisk, testbar logik.
  */
 
-import type { CommentRecord, ConsentType, ResponseStore } from "./types.ts";
+import type { AnalysisRecord, CommentRecord, ConsentType, ResponseStore } from "./types.ts";
 
 /** Svenska riksdagsvalet 2026. Kommentarer gallras efter detta datum. */
 export const ELECTION_DAY = "2026-09-13";
@@ -47,7 +47,6 @@ export interface StoreCommentInput {
   readonly sessionId: string;
   readonly text: string;
   readonly questionId?: string;
-  readonly analysis?: unknown;
   readonly now: string;
   readonly electionDay?: string;
   readonly genId: () => string;
@@ -68,8 +67,41 @@ export async function storeComment(store: ResponseStore, input: StoreCommentInpu
     text: input.text,
     createdAt: input.now,
     deleteAfter: retentionDeadline(input.electionDay),
-    ...(input.analysis !== undefined ? { analysis: input.analysis } : {}),
   };
   await store.saveComment(record);
+  return record;
+}
+
+export interface StoreAnalysisInput {
+  readonly sessionId: string;
+  readonly schemaVersion: string;
+  /** sha-256 (hex) av exakta user-prompten som gav analysen. */
+  readonly inputHash: string;
+  readonly model: string;
+  readonly analysis: unknown;
+  readonly now: string;
+  readonly electionDay?: string;
+  readonly genId: () => string;
+}
+
+/**
+ * Lagrar en AI-analys – härledd ur art. 9-fritext, alltså samma samtyckesgrind
+ * och gallringsdatum som kommentarerna den bygger på.
+ */
+export async function storeAnalysis(store: ResponseStore, input: StoreAnalysisInput): Promise<AnalysisRecord> {
+  const ok = await store.hasConsent(input.sessionId, "article9_freetext");
+  if (!ok) throw new ConsentMissingError(input.sessionId);
+
+  const record: AnalysisRecord = {
+    id: input.genId(),
+    sessionId: input.sessionId,
+    schemaVersion: input.schemaVersion,
+    inputHash: input.inputHash,
+    model: input.model,
+    analysis: input.analysis,
+    createdAt: input.now,
+    deleteAfter: retentionDeadline(input.electionDay),
+  };
+  await store.saveAnalysis(record);
   return record;
 }
