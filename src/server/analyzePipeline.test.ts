@@ -265,6 +265,57 @@ test("analysen persisteras med schemaVersion + inputHash; export inkluderar och 
   assert.equal((await store.exportBySession(SESSION)).analyses.length, 0);
 });
 
+// ---------- serverad formulering bevaras ----------
+
+test("lagrat resultat behåller den serverade formuleringen (_alt kollapsas inte till basen)", async () => {
+  // Bank med både basfråga och variant: post-launch-analysen av formuleringseffekt
+  // kräver att det serverade id:t (t.ex. straff_alt) överlever hela vägen till lagring.
+  const variantDataset: ActiveDataset = {
+    catalog: {
+      version: 1,
+      election: "riksdagsval-2026",
+      publishedAt: "2026-06-17T00:00:00.000Z",
+      scale,
+      questions: [
+        q("straff", "Straffen för grova brott bör skärpas.", "galtan"),
+        q("straff_alt", "Längre fängelsestraff bör användas oftare vid grov brottslighet.", "galtan"),
+      ],
+    },
+    parties: [
+      { id: "M", name: "Moderaterna", positions: { straff: 2, straff_alt: 2 } },
+      { id: "S", name: "Socialdemokraterna", positions: { straff: 0, straff_alt: 0 } },
+    ],
+    scale,
+    sources: {},
+    isPublished: true,
+  };
+  const store = new MemoryResponseStore();
+  const deps: AnalyzeDeps = {
+    dataset: variantDataset,
+    responses: store,
+    analyzer: fakeAnalyzer(cleanAnalysis).analyzer,
+    model: "claude-test",
+    allowAiCall: async () => true,
+    bannerVersion: "v1",
+  };
+  const res = await runAnalyze(
+    body({
+      answers: { straff_alt: { value: 2, weight: 1 } },
+      comments: [{ questionId: "straff_alt", text: "hårdare tag" }],
+    }),
+    deps,
+  );
+  assert.equal(res.status, 200);
+
+  const dump = await store.exportBySession(SESSION);
+  assert.equal(dump.results.length, 1);
+  const stored = dump.results[0]!.canonicalAnswers;
+  assert.ok("straff_alt" in stored, "det serverade id:t ska bevaras i canonicalAnswers");
+  assert.ok(!("straff" in stored), "basen ska inte dyka upp i stället för varianten");
+  // Kommentaren nyckelas också på det serverade id:t.
+  assert.ok(dump.comments.some((c) => c.questionId === "straff_alt"), "kommentaren ska nyckelas på serverat id");
+});
+
 // ---------- degraderingar ----------
 
 test("AI ej konfigurerad: neutral notis utan env-varnamn, kommentarer lagras ändå", async () => {

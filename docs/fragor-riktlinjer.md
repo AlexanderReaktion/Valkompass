@@ -13,12 +13,15 @@ Syftar till att minska **partiledtråd (party cue)** och **ja-sägartendens (acq
 5. **Tvåsidig stam där det är rimligt.** Lägg in avvägningen så att ingen sida låter självklart dygdig: nämn både nyttan och kostnaden ("… även om det höjer priser för konsumenter", "… även om det ökar inkomstskillnaderna"). Då blir det svårare att svara reflexmässigt "vem kan vara emot".
 6. **Konkret framför abstrakt.** Specifika, aktuella förslag (gärna med storlek/villkor) tvingar fram ett ställningstagande till innehållet i stället för till laget.
 7. **En sakfråga per påstående.** Inga dubbelfrågor ("X och Y") — de går inte att besvara entydigt och döljer var skiljelinjen går.
+8. **Baslinjeaudit mot gällande rätt före varje publicering.** Varje stam ska beskriva det aktuella rättsläget korrekt. En stam får aldrig beskriva redan beslutad lag som ett förslag ("bör införas" om något redan är infört); formulera då i stället som behåll eller riv upp. Omankrade stammar (ny betydelse) kräver att partipositionerna re-verifieras källgrundat innan servering, eftersom de gamla positionsvärdena blir felaktiga för den nya frågan. Instabila frågor (bräcklig vapenvila, pågående rådsförhandling) får en publiceringsnot i katalogen och kontrolleras om 1–2 veckor före publicering. *Precedens: baslinjeauditen juli 2026 ankrade om 15 stammar mot gällande rätt (bland annat medborgarskap, visitationszoner, återvandringsbidraget, försvarsanslag 3,5 %) och satte en publiceringsnot på `israel_sanktioner`.*
+9. **Variant-id får aldrig vara ett bas-id.** Bas-id är det rena namnet (t.ex. `skatt_arbete`) och ska inte sluta på `_alt`. Alternativa formuleringar av samma sakfrågegrupp får suffixet `_alt` (t.ex. `skatt_arbete_alt`) och pekar via `positionSourceId` på basens positionsvärden. Grupperingen och de stabila partikoordinaterna på kartan bygger på att varianter känns igen på just det suffixet (`_alt`-ändelsen strippas för att härleda gruppen), så en basfråga med `_alt`-id skulle felaktigt buntas ihop med en annan grupp.
 
 ## Granskningssteg (admin-pipelinen)
 
 - **Avsändartest:** bedöm varje förslag — "hur lätt avslöjas vilket parti som ligger bakom?" Flagga och skriv om de som är uppenbara av *formuleringen* (inte av sakinnehållet).
 - **Signaturordslexikon:** kör frågetexten mot en lista över partiers signatur- och värdeord; träff = flagga för omskrivning.
 - **Polaritetsbalans:** kontrollera att batteriet har en blandning av `polarity: 1` och `-1` och att "instämmer" inte korrelerar med ett block.
+- **Baslinjeaudit:** stäm av varje stam mot gällande rätt/politik (regel 8) och verifiera att omankrade stammars positioner är omgjorda källgrundat innan de serveras.
 
 ## Ärlig takhöjd
 

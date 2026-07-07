@@ -85,3 +85,17 @@ Med åtgärderna i §4 bedöms restrisken som hanterbar **förutsatt** att: (1) 
 hos Anthropic, (2) Postgres ligger i EU, (3) personuppgiftsansvarig och rutiner är fastställda,
 (4) AI Act-klassningen dokumenteras, och (5) en jurist granskar denna DPIA och integritetspolicyn.
 Förhandssamråd med IMY övervägs om restrisken bedöms hög efter åtgärder.
+
+## Tillägg 2026-07-07 – persisterad AI-analys
+
+Ändring av behandlingen: AI-tolkningen (modellens output) persisteras nu server-side i tabellen
+`analyses`, kopplad till samma slumpmässiga session-UUID som kommentarerna. Analysen härleds ur
+art. 9-fritext och behandlas därför under **samma uttryckliga art. 9-samtycke**; den lagras bara
+när samtycke redan loggats för sessionen. Varje rad har `schema_version` och `input_hash` (sha-256
+av den exakta användarprompten) samt modell-id för spårbarhet och reproducerbarhet. Analysen
+omfattas av **samma retention och samma gallringsjobb** som kommentarerna (radering efter valdagen
+13 september 2026) och ingår i DSAR-flödena: både export (art. 15/20) och radering (art. 17) via
+session-referensen täcker `analyses`, och självbetjänad radering sker på sidan `/radera`. Ingen ny
+kategori av personuppgifter tillförs. Analysen är en härledd bearbetning av redan bedömd
+art. 9-fritext, så riskbilden i §3 och åtgärderna i §4 gäller oförändrat. Övriga delar av denna
+DPIA påverkas inte.

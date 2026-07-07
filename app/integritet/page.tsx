@@ -33,6 +33,12 @@ export default function IntegritetPage() {
           känsliga personuppgifter (GDPR art. 9). De behandlas och lagras endast om du lämnar uttryckligt
           samtycke.
         </li>
+        <li>
+          <strong>AI-tolkningen</strong> (den text AI-modellen skapar av dina kommentarer och skalsvar)
+          sparas på servern under samma uttryckliga samtycke som kommentarerna och kopplad till samma
+          session-referens. Den härleds ur dina kommentarer och omfattas därför av samma skydd och
+          samma radering.
+        </li>
       </ul>
 
       <h2>Rättslig grund</h2>
@@ -52,8 +58,9 @@ export default function IntegritetPage() {
 
       <h2>Lagringstid</h2>
       <p>
-        Fritextkommentarer, skalsvar och matchningsdata som sparas i samband med AI-analys raderas
-        automatiskt efter valdagen den 13 september 2026. Du kan begära radering tidigare.
+        Fritextkommentarer, skalsvar, matchningsdata och AI-tolkningar som sparas i samband med
+        AI-analys raderas automatiskt efter valdagen den 13 september 2026. Du kan begära radering
+        tidigare.
       </p>
 
       <h2>AI-transparens</h2>
@@ -77,8 +84,9 @@ export default function IntegritetPage() {
       </p>
       <ul>
         <li>
-          <strong>Radera (art. 17):</strong> ta bort alla sparade resultat, kommentarer och samtycke för
-          sessionen. Detta sker direkt och kan inte ångras.
+          <strong>Radera (art. 17):</strong> ta bort alla sparade resultat, kommentarer, AI-tolkningar
+          och samtycke för sessionen. Detta gör du på sidan{" "}
+          <Link href="/radera">Radera dina uppgifter</Link>; raderingen sker direkt och kan inte ångras.
         </li>
         <li>
           <strong>Få tillgång och dataportabilitet (art. 15/20):</strong> hämta ut all sparad data för

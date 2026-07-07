@@ -145,6 +145,22 @@ const VARIANT_QDEFS: QDef[] = [
   { id: "eu_makt_alt", positionSourceId: "eu_makt", kind: "structural", polarity: -1, topic: "EU", text: "Fler beslut bör fattas gemensamt inom EU även om Sverige lämnar över mer makt.", rationale: "Alternativ formulering av EU-integration. Utanför kartans axlar av samma skäl som grundfrågan." },
 ];
 
+// Invariant för equivalenceKey (src/kompass/testPlan.ts): variant-strippningen
+// matchar /_alt\d*$/. Ett BAS-id som självt slutar på "_alt" skulle kollapsas till
+// en icke-existerande grupp, och varje variant måste peka på en basfråga via
+// positionSourceId. Fångas vid modulladdning (även i tester) så att en framtida
+// namngivning inte tyst bryter varianthanteringen.
+const ALT_SUFFIX = /_alt\d*$/;
+for (const d of QDEFS) {
+  if (ALT_SUFFIX.test(d.id)) {
+    throw new Error(`Basfråge-id får inte sluta på "_alt": ${d.id} (krockar med equivalenceKey).`);
+  }
+}
+for (const d of VARIANT_QDEFS) {
+  if (!ALT_SUFFIX.test(d.id)) throw new Error(`Variant-id måste sluta på "_alt": ${d.id}.`);
+  if (!d.positionSourceId) throw new Error(`Variant ${d.id} saknar positionSourceId.`);
+}
+
 const ALL_QDEFS = [...QDEFS, ...VARIANT_QDEFS];
 const POSITION_SOURCE_BY_QUESTION = new Map(
   VARIANT_QDEFS.map((q) => [q.id, q.positionSourceId ?? q.id] as const),

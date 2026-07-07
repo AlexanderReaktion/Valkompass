@@ -167,6 +167,63 @@ function quotas(counts: number[], target: number): number[] {
   return out;
 }
 
+/**
+ * Interleaver flera fack varv för varv (ett element ur varje fack i tur och
+ * ordning, tomma fack hoppas över). De första elementen blir därmed en jämnt
+ * fördelad delmängd över facken i stället för en klump ur ett enda fack.
+ */
+function roundRobin<T>(buckets: readonly T[][]): T[] {
+  const out: T[] = [];
+  const maxLen = buckets.reduce((m, b) => Math.max(m, b.length), 0);
+  for (let round = 0; round < maxLen; round += 1) {
+    for (const bucket of buckets) {
+      const item = bucket[round];
+      if (item !== undefined) out.push(item);
+    }
+  }
+  return out;
+}
+
+/** Fack i fallande storlek (stabil ordning, lika stora bryts på nyckel). */
+function orderedBuckets<T>(groups: Map<string, T[]>): T[][] {
+  return [...groups.entries()]
+    .sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1))
+    .map(([, items]) => items);
+}
+
+function groupBy(items: readonly CatalogQuestion[], keyOf: (q: CatalogQuestion) => string): Map<string, CatalogQuestion[]> {
+  const groups = new Map<string, CatalogQuestion[]>();
+  for (const q of items) {
+    const key = keyOf(q);
+    const arr = groups.get(key) ?? [];
+    arr.push(q);
+    groups.set(key, arr);
+  }
+  return groups;
+}
+
+/**
+ * Stratifierat urval av k frågor ur en sektions pool. Balanserar
+ * visningspolaritet (+1/-1) och sprider dimensioner (economic/galtan/utan axel)
+ * så jämnt som kvoten och poolen tillåter. Ett rakt seedat blandat urval kan
+ * annars dra ensidigt trots att banken är balanserad (t.ex. Välfärd med 8/5-skev
+ * polaritet). Deterministiskt för ett givet seed.
+ */
+function stratifiedDraw(candidates: readonly CatalogQuestion[], k: number, seed: number): CatalogQuestion[] {
+  if (k >= candidates.length) return shuffle(candidates, seed);
+
+  // Seedad blandning ger tiebreak inom facken; grupperna byggs på den ordningen.
+  const shuffled = shuffle(candidates, seed);
+
+  // Inom varje polaritet sprids dimensionerna med samma varv-för-varv-logik.
+  const polarityOrders = orderedBuckets(groupBy(shuffled, (q) => String(q.polarity))).map((pool) =>
+    roundRobin(orderedBuckets(groupBy(pool, (q) => q.dimension ?? "none"))),
+  );
+
+  // Interleava polariteterna: de första k blir så polaritetsbalanserade poolen medger.
+  return roundRobin(polarityOrders).slice(0, k);
+}
+
 export function buildTestPlan(
   questions: readonly CatalogQuestion[],
   seed: string,
@@ -183,7 +240,7 @@ export function buildTestPlan(
   const sections: QuestionSection[] = [];
   for (let i = 0; i < sectionCount; i += 1) {
     const candidates = bySection.get(i) ?? [];
-    const selected = shuffle(candidates, baseSeed + 100 + i).slice(0, sectionQuotas[i]);
+    const selected = stratifiedDraw(candidates, sectionQuotas[i] ?? candidates.length, baseSeed + 100 + i);
     if (selected.length === 0) continue;
     sections.push({
       title: SECTION_DEFS[i]?.title ?? "Övrigt",
