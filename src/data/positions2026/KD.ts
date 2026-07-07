@@ -19,7 +19,6 @@ const rows: PositionRow[] = [
   { q: "asyl_farre", v: 2, l: "KD vill ha en stram och hållbar migrationspolitik med färre asylsökande", u: "https://kristdemokraterna.se/var-politik/politikomraden/migration-och-integration" },
   { q: "flykting_oppen", v: 1, l: "Kristdemokraterna: Migration och integration / Flyktingar", u: "https://kristdemokraterna.se/var-politik/politikomraden/migration-och-integration" },
   { q: "medborgarskap", v: 2, l: "KD vill skärpa kraven för medborgarskap med språk- och samhällskunskapsprov", u: "https://kristdemokraterna.se/var-politik/politikomraden/migration-och-integration" },
-  { q: "anpassning", v: 2, l: "Kristdemokraterna: SFI", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/sfi-svenska-for-invandrare" },
   { q: "atervandring", v: 2, l: "Kristdemokraterna – Migration och integration", u: "https://kristdemokraterna.se/var-politik/politikomraden/migration-och-integration" },
   { q: "anhorig", v: 1, l: "Regeringen – Nya regler för anhöriginvandring (juni 2026), KD stöder höjt försörjningskrav", u: "https://www.regeringen.se/pressmeddelanden/2026/06/nya-regler-for-anhoriginvandring/" },
   { q: "straff", v: 2, l: "KD vill skärpa straffen och avskaffa mängdrabatten", u: "https://kristdemokraterna.se/var-politik/politik-a-till-o/brottsbekampning" },
@@ -49,6 +48,15 @@ const rows: PositionRow[] = [
   // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
   { q: "marknadshyror", v: 1, l: "Fastighetstidningen: Partiernas syn på friare hyror (KD: hyressättningen i nyproduktion behöver bli mer flexibel och spegla efterfrågan)", u: "https://fastighetstidningen.se/nyhet/partiernas-syn-pa-friare-hyror/" },
   { q: "sjukvard_stat", v: 2, l: "Altinget: KD trotsar kring vårdens förstatligande (KD vill att staten tar över huvudmannaskapet helt)", u: "https://www.altinget.se/artikel/kd-trotsar-kring-vaardens-forstatligande" },
+  // TODO 2026-07: AI-priors för åtta nya frågor; ersätts av positionsresearch-workflowet före granskning.
+  { q: "medborgarskap_aterkallelse", v: 2, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/en-grundlagsskyddad-abortratt-samt-utokade_hd01ku34/" },
+  { q: "tandvard_hogkostnad", v: -1, l: "AI-prior, ompositioneras", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/tandvard" },
+  { q: "narkotika_avkrim", v: 2, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/alkohol-narkotika-dopning-tobak-och-spel_hd01sou13/html/" },
+  { q: "skola_forstatliga", v: 0, l: "AI-prior, ompositioneras", u: "https://www.liberalerna.se/politik/" },
+  { q: "informationsplikt", v: 2, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/starkt-atervandandeverksamhet_hd01sfu32/" },
+  { q: "vargjakt", v: 2, l: "AI-prior, ompositioneras", u: "https://www.svt.se/nyheter/inrikes/sa-tycker-partierna-i-vargfragan" },
+  { q: "strandskydd", v: 2, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/lattnader-i-strandskyddet-ett-forsta-steg_hc01mju16/html/" },
+  { q: "israel_sanktioner", v: 1, l: "AI-prior, ompositioneras", u: "https://ec.europa.eu/commission/presscorner/detail/en/ip_25_2112" },
 ];
 
 export default rows;

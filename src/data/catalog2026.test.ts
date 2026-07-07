@@ -9,8 +9,8 @@ const scale: Scale = { min: -2, max: 2 };
 const PARTIES = ["V", "S", "MP", "C", "L", "KD", "M", "SD"];
 const now = "2026-06-17T00:00:00.000Z";
 
-test("2026: 62 formuleringar, alla utkast, båda dimensionerna, blandad polaritet", () => {
-  assert.equal(catalog2026Questions.length, 62);
+test("2026: 74 formuleringar, alla utkast, båda dimensionerna, blandad polaritet", () => {
+  assert.equal(catalog2026Questions.length, 74);
   assert.ok(catalog2026Questions.every((q) => q.status === "draft"));
   const dims = new Set(catalog2026Questions.map((q) => q.dimension).filter(Boolean));
   assert.ok(dims.has("economic") && dims.has("galtan"));
@@ -18,8 +18,8 @@ test("2026: 62 formuleringar, alla utkast, båda dimensionerna, blandad polarite
   assert.ok(pols.has(1) && pols.has(-1));
 });
 
-test("2026: 496 positioner, värden i skala, källbelagda, alla par täckta", () => {
-  assert.equal(catalog2026Positions.length, 62 * 8);
+test("2026: 592 positioner, värden i skala, källbelagda, alla par täckta", () => {
+  assert.equal(catalog2026Positions.length, 74 * 8);
   const seen = new Set<string>();
   for (const p of catalog2026Positions) {
     assert.ok(p.value >= -2 && p.value <= 2, `${p.questionId}/${p.partyId} utanför skala`);
@@ -67,6 +67,55 @@ test("2026: ideologiska ankarpartier hamnar på motsatta sidor av skalans mittpu
     const spread = Math.max(...values) - Math.min(...values);
     assert.ok(spread >= 2, `${questionId}: för liten spridning (${spread})`);
   }
+});
+
+test("2026-07 frågerevision: anpassning borttagen, åtta nya frågor med positioner för alla partier", () => {
+  const ids = new Set(catalog2026Questions.map((q) => q.id));
+  // anpassning togs bort (item-H 0,98 mot medborgarskap; sakinnehållet i huvudsak lagfäst).
+  assert.ok(!ids.has("anpassning"), "anpassning ska vara borttagen ur frågebanken");
+  assert.ok(!catalog2026Positions.some((p) => p.questionId === "anpassning"), "anpassning ska sakna positionsrader");
+
+  const nya = [
+    "medborgarskap_aterkallelse",
+    "tandvard_hogkostnad",
+    "narkotika_avkrim",
+    "skola_forstatliga",
+    "informationsplikt",
+    "vargjakt",
+    "strandskydd",
+    "israel_sanktioner",
+  ];
+  for (const id of nya) {
+    assert.ok(ids.has(id), `saknar ny fråga ${id}`);
+    assert.equal(
+      catalog2026Positions.filter((p) => p.questionId === id).length,
+      8,
+      `${id} ska ha en position per parti`,
+    );
+  }
+});
+
+test("2026-07 frågerevision: polaritetsflippar (regressionsvakter) och polaritetsbalans per axel", () => {
+  const byId = new Map(catalog2026Questions.map((q) => [q.id, q]));
+  // Tre visningspolariteter flippades vid omankringen; kanonisk riktning är oförändrad.
+  assert.equal(byId.get("akassa")?.polarity, -1, "akassa: instämmer = höj a-kassan = vänster");
+  assert.equal(byId.get("public_service")?.polarity, -1, "public_service: instämmer = större anslag = GAL");
+  assert.equal(byId.get("public_service_alt")?.polarity, -1, "public_service_alt följer basens polaritet");
+  assert.equal(byId.get("hbtqi")?.polarity, 1, "hbtqi: instämmer = avskaffa könstillhörighetslagen = TAN");
+
+  // Balans över grundstammarna enligt ändringsplanen 5.3: 28 med +1, 26 med -1
+  // (economic 9/7, galtan 11/11, utanför axlarna 8/8).
+  const base = catalog2026Questions.filter((q) => !/_alt\d*$/.test(q.id));
+  assert.equal(base.length, 54);
+  const count = (qs: typeof base, pol: 1 | -1) => qs.filter((q) => q.polarity === pol).length;
+  assert.equal(count(base, 1), 28);
+  assert.equal(count(base, -1), 26);
+  const econ = base.filter((q) => q.dimension === "economic");
+  const galtan = base.filter((q) => q.dimension === "galtan");
+  const off = base.filter((q) => !q.dimension);
+  assert.equal(`${count(econ, 1)}/${count(econ, -1)}`, "9/7");
+  assert.equal(`${count(galtan, 1)}/${count(galtan, -1)}`, "11/11");
+  assert.equal(`${count(off, 1)}/${count(off, -1)}`, "8/8");
 });
 
 test("2026: efter godkännande validerar katalogen för publicering utan fel", () => {

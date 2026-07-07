@@ -26,17 +26,19 @@ export interface TestPlan {
 export const TEST_MODES: readonly TestMode[] = [
   { id: "quick", label: "Snabbtest", description: "25 frågor · ca 4 min · bred täckning.", targetGroups: 25 },
   { id: "standard", label: "Standard", description: "35 frågor · ca 6 min · bättre stabilitet.", targetGroups: 35 },
-  { id: "deep", label: "Fördjupning", description: "Alla sakfrågegrupper · ca 8–10 min.", targetGroups: Number.POSITIVE_INFINITY },
+  // Tidsuppskattningen följer bankens storlek: 54 grupper sedan 2026-07 (tidigare 47, "ca 8–10 min").
+  { id: "deep", label: "Fördjupning", description: "Alla sakfrågegrupper · ca 9–11 min.", targetGroups: Number.POSITIVE_INFINITY },
 ] as const;
 
 const SECTION_DEFS: { title: string; ids: string[]; topics: string[] }[] = [
   { title: "Skatter & ekonomi", ids: ["skatt_arbete", "hoginkomstskatt", "bolagsskatt", "kapitalskatt", "offentliga_utgifter", "rutrot", "bensinskatt"], topics: ["skatter", "företag", "ekonomi", "drivmedel"] },
-  { title: "Välfärd, bostad & arbete", ids: ["vinst_valfard", "offentlig_ansvar", "arbetsratt", "akassa", "forsorjningsstod", "pension", "vard_resurser", "sjukvard_stat", "friskolor", "vinst_skola", "marknadshyror"], topics: ["välfärd", "arbetsmarknad", "trygghet", "bidrag", "pension", "sjukvård", "skola", "bostad"] },
-  { title: "Migration & integration", ids: ["arbetskraftsinvandring", "asyl_farre", "flykting_oppen", "medborgarskap", "anpassning", "atervandring", "anhorig", "bistand"], topics: ["migration", "integration", "bistånd"] },
-  { title: "Lag & ordning", ids: ["straff", "polisbefogenheter", "visitationszoner", "ungdomsstraff", "forebyggande", "integritet"], topics: ["brottslighet", "integritet"] },
-  { title: "Klimat & energi", ids: ["klimat_prioritet", "karnkraft", "vindkraft", "miljoskatter", "reduktionsplikt", "naturskydd"], topics: ["klimat", "energi", "miljö"] },
+  { title: "Välfärd, bostad & arbete", ids: ["vinst_valfard", "offentlig_ansvar", "arbetsratt", "akassa", "forsorjningsstod", "pension", "vard_resurser", "sjukvard_stat", "tandvard_hogkostnad", "friskolor", "vinst_skola", "skola_forstatliga", "marknadshyror"], topics: ["välfärd", "arbetsmarknad", "trygghet", "bidrag", "pension", "sjukvård", "skola", "bostad"] },
+  { title: "Migration & integration", ids: ["arbetskraftsinvandring", "asyl_farre", "flykting_oppen", "medborgarskap", "medborgarskap_aterkallelse", "atervandring", "anhorig", "informationsplikt"], topics: ["migration", "integration"] },
+  { title: "Lag & ordning", ids: ["straff", "polisbefogenheter", "visitationszoner", "ungdomsstraff", "forebyggande", "integritet", "narkotika_avkrim"], topics: ["brottslighet", "integritet"] },
+  { title: "Klimat & energi", ids: ["klimat_prioritet", "karnkraft", "vindkraft", "miljoskatter", "reduktionsplikt", "naturskydd", "vargjakt", "strandskydd"], topics: ["klimat", "energi", "miljö"] },
   { title: "Familj, rättigheter & demokrati", ids: ["foraldraforsakring", "abort", "hbtqi", "public_service", "monarki"], topics: ["familj", "rättigheter", "media", "demokrati"] },
-  { title: "Försvar & EU", ids: ["nato", "forsvarsanslag", "eu_makt", "euro"], topics: ["försvar", "EU"] },
+  // 2026-07: bistand flyttad hit från Migration & integration (biståndsramen är utrikes-/säkerhetspolitik).
+  { title: "Försvar & EU", ids: ["nato", "forsvarsanslag", "eu_makt", "euro", "israel_sanktioner", "bistand"], topics: ["försvar", "EU", "utrikespolitik", "bistånd"] },
 ];
 
 export function seedFrom(value: string): number {

@@ -63,10 +63,20 @@ export default function OmPage() {
       <h2>AI-användning</h2>
       <p>
         Om du skriver fritextkommentarer tolkas de av en AI-modell som ett separat, tydligt märkt
-        lager – din profil i ord, med teman, ton och kopplingar. Matchningssiffran räknas alltid enbart
-        på dina skalsvar, och AI:n rekommenderar aldrig ett parti. Resultatet visar också hur varje
-        kommentar vägdes in: om den förstärkte ett skalsvar, nyanserade det eller visade en spänning.
-        Frågorna som berördes märks upp i partilistan.
+        lager – din profil i ord, med teman, ton och kopplingar. AI:n väger kommentarerna tillsammans
+        med dina skalsvar, beskrivna i ord med den vikt du gett dem, och med ditt beräknade resultat,
+        så att tolkningen utgår från vad du faktiskt svarade. Matchningssiffran räknas alltid enbart
+        på dina skalsvar av deterministisk kod; AI-tolkningen ändrar den aldrig och rekommenderar
+        aldrig ett parti. Resultatet visar också hur varje kommentar vägdes in: om den förstärkte ett
+        skalsvar, nyanserade det eller visade en spänning. Frågorna som berördes märks upp i
+        partilistan.
+      </p>
+      <p>
+        Tolkningen sparas på servern under samma uttryckliga samtycke som dina kommentarer, kopplad
+        till en slumpmässig session-referens, och raderas automatiskt efter valdagen den 13 september
+        2026. Du kan radera allt tidigare på sidan{" "}
+        <Link href="/radera">Radera dina uppgifter</Link>. Den visade tolkningen sparas även lokalt i
+        din webbläsare, så att den finns kvar om du laddar om sidan.
       </p>
 
       <h2>Dela och gör om</h2>

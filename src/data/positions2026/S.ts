@@ -19,7 +19,6 @@ const rows: PositionRow[] = [
   { q: "asyl_farre", v: 1, l: "SVT Valkompass 2026: Socialdemokraterna", u: "https://valkompass.svt.se/2026/parti/socialdemokraterna/" },
   { q: "flykting_oppen", v: -1, l: "S riksdagsmotion Migration (Ygeman m.fl.)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/migration_hb022622/html/" },
   { q: "medborgarskap", v: 2, l: "Motion 2025/26:3990 skärpta medborgarskapskrav (S)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/med-anledning-av-prop-202526175-skarpta-krav_hd023990/" },
-  { q: "anpassning", v: 2, l: "Socialdemokraterna: Språkkrav", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/sprakkrav" },
   { q: "atervandring", v: 1, l: "Socialdemokraterna – Invandring och integration (A–Ö)", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/invandring-och-integration" },
   { q: "anhorig", v: 1, l: "Regeringen: Höjt försörjningskrav vid anhöriginvandring", u: "https://www.regeringen.se/pressmeddelanden/2025/12/hojt-forsorjningskrav-vid-anhoriginvandring-foreslas/" },
   { q: "straff", v: 2, l: "Motion 2025/26:3586 Rättsväsendet (S)", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/motion/utgiftsomrade-4-rattsvasendet_hd023586/html/" },
@@ -49,6 +48,15 @@ const rows: PositionRow[] = [
   // 2026-07: nya frågor (bostad + sjukvårdens huvudmannaskap)
   { q: "marknadshyror", v: -2, l: "Hyresgästföreningen: Vad tycker partierna i bostadspolitiken? (S emot marknadshyror; vill motverka omfördelning från hyresgäster till fastighetsägare)", u: "https://www.hyresgastforeningen.se/var-politik/hyresgasternas-val/vad-tycker-partierna-i-bostadspolitiken/" },
   { q: "sjukvard_stat", v: -1, l: "SVT: 6 av 8 partier vill inte att staten tar över sjukvården (S emot förstatligande; vill öka statlig styrning på andra sätt)", u: "https://www.svt.se/nyheter/inrikes/svt-erfar-partierna-splittrade-om-statlig-sjukvard" },
+  // TODO 2026-07: AI-priors för åtta nya frågor; ersätts av positionsresearch-workflowet före granskning.
+  { q: "medborgarskap_aterkallelse", v: 1, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/en-grundlagsskyddad-abortratt-samt-utokade_hd01ku34/" },
+  { q: "tandvard_hogkostnad", v: -2, l: "AI-prior, ompositioneras", u: "https://www.socialdemokraterna.se/var-politik/a-till-o/tandvard" },
+  { q: "narkotika_avkrim", v: 2, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/alkohol-narkotika-dopning-tobak-och-spel_hd01sou13/html/" },
+  { q: "skola_forstatliga", v: -1, l: "AI-prior, ompositioneras", u: "https://www.liberalerna.se/politik/" },
+  { q: "informationsplikt", v: 0, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/starkt-atervandandeverksamhet_hd01sfu32/" },
+  { q: "vargjakt", v: 0, l: "AI-prior, ompositioneras", u: "https://www.svt.se/nyheter/inrikes/sa-tycker-partierna-i-vargfragan" },
+  { q: "strandskydd", v: -1, l: "AI-prior, ompositioneras", u: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/betankande/lattnader-i-strandskyddet-ett-forsta-steg_hc01mju16/html/" },
+  { q: "israel_sanktioner", v: -2, l: "AI-prior, ompositioneras", u: "https://ec.europa.eu/commission/presscorner/detail/en/ip_25_2112" },
 ];
 
 export default rows;
