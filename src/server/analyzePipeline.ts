@@ -335,9 +335,10 @@ export async function runAnalyze(rawBody: unknown, deps: AnalyzeDeps): Promise<A
         } catch (e) {
           console.error("[analyze] Kunde inte persistera analysen:", e);
         }
-      } catch {
+      } catch (e) {
         // AI-felet får inte fälla hela svaret – matchningen returneras ändå
         // och kommentarerna är redan lagrade.
+        console.error("[analyze] AI-analysen misslyckades:", e);
         analysisNote = "AI-analysen kunde inte slutföras just nu.";
       }
     }

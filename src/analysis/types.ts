@@ -142,8 +142,7 @@ export const COMMENT_ANALYSIS_SCHEMA = {
         properties: {
           commentIndex: {
             type: "integer",
-            minimum: 1,
-            description: "1-baserat: kommentarens nummer i den numrerade listan.",
+            description: "1-baserat: kommentarens nummer i den numrerade listan (minst 1; valideras serverside).",
           },
           reason: { type: "string" },
         },
