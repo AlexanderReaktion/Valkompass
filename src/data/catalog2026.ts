@@ -39,12 +39,10 @@ interface QDef {
   positionSourceId?: string;
 }
 
-// OBS 2026-07 (frågerevisionen inför valet): 15 omankrade frågor har fått ny text med
-// ÄNDRAD BETYDELSE. Deras positionsrader i positions2026/ är tills vidare kvar från den
-// gamla formuleringen (stale) och ompositioneras av positionsresearch-workflowet innan
-// expertgranskning: akassa, rutrot, forsorjningsstod, friskolor, medborgarskap,
-// atervandring, visitationszoner, ungdomsstraff, integritet, miljoskatter, hbtqi,
-// public_service, bistand, arbetskraftsinvandring, forsvarsanslag.
+// OBS 2026-07 (frågerevisionen inför valet): 15 omankrade frågor fick ny text med ändrad
+// betydelse. Deras positioner är ompositionerade källgrundat (research + adversariell
+// motläsning) och inskrivna i positions2026/. Rader med svagt/gammalt/motstridigt belägg
+// är märkta // TODO(expertgranskning) och ska dubbelkollas i /admin före slutgodkännande.
 const QDEFS: QDef[] = [
   // Ekonomisk vänster–höger
   { id: "skatt_arbete", kind: "structural", dimension: "economic", polarity: 1, topic: "skatter", text: "Skatten på arbete bör sänkas.", rationale: "Klassisk fördelningspolitisk skiljelinje." },
