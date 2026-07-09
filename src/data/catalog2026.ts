@@ -39,6 +39,67 @@ interface QDef {
   positionSourceId?: string;
 }
 
+const PUBLIC_RATIONALE_BY_BASE_ID: Record<string, string> = {
+  skatt_arbete: "Frågan fångar din syn på avvägningen mellan lägre skatt på arbete och intäkter till gemensamma åtaganden.",
+  hoginkomstskatt: "Den visar hur du ser på om skattesystemet ska omfördela mer från höga inkomster eller om marginalskatterna ska hållas nere.",
+  bolagsskatt: "Den fångar balansen mellan företagens villkor och skatteintäkter från vinster.",
+  kapitalskatt: "Den visar hur du väger beskattning av kapitalinkomster mot sparande, investeringar och fördelning.",
+  offentliga_utgifter: "Den handlar om hur stor roll det offentliga ska ha i välfärden när utbyggnad också kräver finansiering.",
+  rutrot: "Den är med eftersom avdrag för hushållsnära tjänster delar synen på skattesubventioner, arbetsmarknad och fördelningspolitik.",
+  vinst_valfard: "Den fångar om du tycker att privata utförare ska kunna ta ut vinst när verksamheten finansieras med skattemedel.",
+  offentlig_ansvar: "Den visar hur du ser på vem som ska driva vård och skola: offentliga huvudmän eller fler privata utförare.",
+  arbetsratt: "Den fångar avvägningen mellan flexibilitet för arbetsgivare och anställningstrygghet för arbetstagare.",
+  akassa: "Den visar hur du väger ekonomisk trygghet vid arbetslöshet mot statens kostnader och arbetslinjens incitament.",
+  forsorjningsstod: "Den handlar om var gränsen ska gå mellan ekonomiskt stöd till hushåll och krav på att bidragssystemen begränsas.",
+  pension: "Den fångar hur högt du prioriterar höjda pensioner när de behöver finansieras med skatter eller avgifter.",
+  vard_resurser: "Den visar hur du väger mer resurser till sjukvården mot ett högre skattetryck.",
+  friskolor: "Den är med eftersom skolvalets urvalsregler påverkar både familjers valfrihet och likvärdigheten mellan elever.",
+  vinst_skola: "Den fångar din syn på om skattefinansierad skola ska få dela ut vinst till ägare.",
+  marknadshyror: "Den visar hur du ser på balansen mellan friare hyressättning i nyproduktion och skydd mot snabbare hyreshöjningar.",
+  asyl_farre: "Den fångar din syn på hur restriktiv eller öppen asylpolitiken ska vara.",
+  flykting_oppen: "Den kompletterar asylfrågan genom att fråga om kvotflyktingar, där staten i förväg väljer hur många som tas emot.",
+  medborgarskap: "Den visar hur du ser på kraven för att bli svensk medborgare och balansen mellan inkludering och motprestationer.",
+  medborgarskap_aterkallelse: "Den fångar gränsen mellan medborgarskapets skydd och statens möjlighet att agera vid mycket allvarlig brottslighet.",
+  atervandring: "Den handlar om huruvida staten ska använda ekonomiska incitament för frivillig återvandring.",
+  informationsplikt: "Den visar hur du väger migrationskontroll mot tillit till myndigheter och tillgång till samhällsservice.",
+  anhorig: "Den fångar balansen mellan familjeåterförening och en mer restriktiv migrationspolitik.",
+  straff: "Den visar hur du ser på hårdare straff som svar på grov brottslighet.",
+  polisbefogenheter: "Den fångar avvägningen mellan effektiv brottsbekämpning och skyddet för personlig integritet.",
+  visitationszoner: "Den handlar om huruvida polisen ska kunna visitera utan konkret misstanke i särskilt utsatta lägen.",
+  ungdomsstraff: "Den visar var du drar gränsen för straffrättsligt ansvar för yngre personer vid de grövsta brotten.",
+  narkotika_avkrim: "Den fångar synen på om eget bruk av narkotika främst ska mötas med straff eller med vård och skademinskning.",
+  forebyggande: "Den visar hur du väger förebyggande sociala insatser mot mer repressiva åtgärder i kriminalpolitiken.",
+  integritet: "Den fångar avvägningen mellan ny övervakningsteknik för polisen och rätten till privatliv i offentliga miljöer.",
+  klimat_prioritet: "Den visar hur högt du prioriterar klimatomställning när åtgärderna kan innebära kostnader på kort sikt.",
+  miljoskatter: "Den fångar synen på om flygresor ska beskattas för att minska klimatpåverkan eller om skatten bör hållas borta.",
+  naturskydd: "Den visar hur du väger skydd av skog och natur mot möjligheten att bruka marken.",
+  foraldraforsakring: "Den handlar om balansen mellan jämnare uttag av föräldraledighet och familjers frihet att själva fördela dagarna.",
+  abort: "Den fångar var du drar gränsen mellan nuvarande abortregler och ytterligare begränsningar sent i graviditeten.",
+  hbtqi: "Den visar hur du ser på juridiskt kön och balansen mellan enklare regler för individen och mer restriktiv lagstiftning.",
+  eu_makt: "Den fångar din syn på hur mycket beslutanderätt Sverige ska dela med EU.",
+  public_service: "Den handlar om public service-uppdragets omfattning och finansiering: mer resurser till oberoende medier eller en stramare nivå.",
+  monarki: "Den visar hur du ser på Sveriges statsskick: ärvd monarki eller republik.",
+  sjukvard_stat: "Den fångar frågan om sjukvårdens ansvar ska ligga kvar regionalt eller flyttas tydligare till staten.",
+  tandvard_hogkostnad: "Den visar hur du väger lägre tandvårdskostnader för patienter mot statens kostnader för ett bredare skydd.",
+  skola_forstatliga: "Den handlar om vem som ska ansvara för skolan: kommunerna eller staten.",
+  bensinskatt: "Den fångar avvägningen mellan lägre drivmedelskostnader och skatteintäkter samt klimatstyrning.",
+  bistand: "Den visar hur högt du prioriterar internationellt bistånd i relation till andra statliga utgifter.",
+  arbetskraftsinvandring: "Den handlar om balansen mellan företags möjlighet att rekrytera utanför EU och krav på lönenivåer och arbetsvillkor.",
+  karnkraft: "Den fångar synen på kärnkraftens roll i Sveriges framtida elförsörjning.",
+  vindkraft: "Den visar hur du väger snabbare utbyggnad av vindkraft mot lokala intressen och annan energiplanering.",
+  reduktionsplikt: "Den handlar om balansen mellan lägre drivmedelspris och krav som minskar utsläpp från bensin och diesel.",
+  vargjakt: "Den fångar avvägningen mellan rovdjursskydd och intressen för jakt, djurhållning och människor som bor nära vargrevir.",
+  strandskydd: "Den visar hur du väger mer byggande nära vatten mot allmänhetens tillgång till stränder och naturvärden.",
+  nato: "Den fångar hur långt du vill att Sverige ska gå i sitt försvarssamarbete inom NATO efter medlemskapet.",
+  forsvarsanslag: "Den visar hur högt du prioriterar ökade försvarsutgifter när pengarna behöver tas från lån, skatter eller andra områden.",
+  euro: "Den fångar din syn på om Sverige ska behålla kronan eller gå vidare mot euron.",
+  israel_sanktioner: "Den handlar om hur Sverige bör använda EU:s handelspolitik för att påverka Israel i en pågående konflikt.",
+};
+
+function publicRationaleFor(q: QDef): string {
+  return PUBLIC_RATIONALE_BY_BASE_ID[q.positionSourceId ?? q.id] ?? q.rationale;
+}
+
 // OBS 2026-07 (frågerevisionen inför valet): 15 omankrade frågor fick ny text med ändrad
 // betydelse. Deras positioner är ompositionerade källgrundat (research + adversariell
 // motläsning) och inskrivna i positions2026/. Rader med svagt/gammalt/motstridigt belägg
@@ -166,7 +227,7 @@ const POSITION_SOURCE_BY_QUESTION = new Map(
 
 export const catalog2026Questions: CatalogQuestion[] = ALL_QDEFS.map((d) =>
   createQuestion(
-    { id: d.id, kind: d.kind, polarity: d.polarity, topic: d.topic, text: d.text, rationale: d.rationale, ...(d.dimension ? { dimension: d.dimension } : {}) },
+    { id: d.id, kind: d.kind, polarity: d.polarity, topic: d.topic, text: d.text, rationale: publicRationaleFor(d), ...(d.dimension ? { dimension: d.dimension } : {}) },
     NOW,
   ),
 );

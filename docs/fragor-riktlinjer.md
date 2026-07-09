@@ -14,7 +14,8 @@ Syftar till att minska **partiledtråd (party cue)** och **ja-sägartendens (acq
 6. **Konkret framför abstrakt.** Specifika, aktuella förslag (gärna med storlek/villkor) tvingar fram ett ställningstagande till innehållet i stället för till laget.
 7. **En sakfråga per påstående.** Inga dubbelfrågor ("X och Y") — de går inte att besvara entydigt och döljer var skiljelinjen går.
 8. **Baslinjeaudit mot gällande rätt före varje publicering.** Varje stam ska beskriva det aktuella rättsläget korrekt. En stam får aldrig beskriva redan beslutad lag som ett förslag ("bör införas" om något redan är infört); formulera då i stället som behåll eller riv upp. Omankrade stammar (ny betydelse) kräver att partipositionerna re-verifieras källgrundat innan servering, eftersom de gamla positionsvärdena blir felaktiga för den nya frågan. Instabila frågor (bräcklig vapenvila, pågående rådsförhandling) får en publiceringsnot i katalogen och kontrolleras om 1–2 veckor före publicering. *Precedens: baslinjeauditen juli 2026 ankrade om 15 stammar mot gällande rätt (bland annat medborgarskap, visitationszoner, återvandringsbidraget, försvarsanslag 3,5 %) och satte en publiceringsnot på `israel_sanktioner`.*
-9. **Variant-id får aldrig vara ett bas-id.** Bas-id är det rena namnet (t.ex. `skatt_arbete`) och ska inte sluta på `_alt`. Alternativa formuleringar av samma sakfrågegrupp får suffixet `_alt` (t.ex. `skatt_arbete_alt`) och pekar via `positionSourceId` på basens positionsvärden. Grupperingen och de stabila partikoordinaterna på kartan bygger på att varianter känns igen på just det suffixet (`_alt`-ändelsen strippas för att härleda gruppen), så en basfråga med `_alt`-id skulle felaktigt buntas ihop med en annan grupp.
+9. **Motiveringen är publik användarcopy.** Texten bakom "Varför ställs frågan?" ska svara på varför frågan hjälper väljaren att placera sig: vilken sakpolitisk avvägning den fångar och varför den är relevant för matchningen. Den får inte innehålla interna granskningsord som `polarity`, "kanonisk riktning", "baslinje", "omankrad", propositionstekniska anteckningar eller kommentarer om alternativa formuleringar.
+10. **Variant-id får aldrig vara ett bas-id.** Bas-id är det rena namnet (t.ex. `skatt_arbete`) och ska inte sluta på `_alt`. Alternativa formuleringar av samma sakfrågegrupp får suffixet `_alt` (t.ex. `skatt_arbete_alt`) och pekar via `positionSourceId` på basens positionsvärden. Grupperingen och de stabila partikoordinaterna på kartan bygger på att varianter känns igen på just det suffixet (`_alt`-ändelsen strippas för att härleda gruppen), så en basfråga med `_alt`-id skulle felaktigt buntas ihop med en annan grupp.
 
 ## Granskningssteg (admin-pipelinen)
 
@@ -22,6 +23,7 @@ Syftar till att minska **partiledtråd (party cue)** och **ja-sägartendens (acq
 - **Signaturordslexikon:** kör frågetexten mot en lista över partiers signatur- och värdeord; träff = flagga för omskrivning.
 - **Polaritetsbalans:** kontrollera att batteriet har en blandning av `polarity: 1` och `-1` och att "instämmer" inte korrelerar med ett block.
 - **Baslinjeaudit:** stäm av varje stam mot gällande rätt/politik (regel 8) och verifiera att omankrade stammars positioner är omgjorda källgrundat innan de serveras.
+- **Motiveringsgranskning:** läs varje "Varför ställs frågan?" som en väljare. Den ska vara begriplig utan intern kontext och inte beskriva frågeteknik, datamodell eller källgranskningsarbete.
 
 ## Ärlig takhöjd
 

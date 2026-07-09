@@ -31,7 +31,7 @@ export interface CatalogQuestion {
   /** Ämne, t.ex. "sjukvård", "migration". */
   readonly topic: string;
   readonly status: LifecycleStatus;
-  /** Varför frågan valts (skiljelinje) — krävs för godkännande, visas för användaren. */
+  /** Publik användartext om varför frågan valts — krävs för godkännande, visas för användaren. */
   readonly rationale?: string;
   readonly sources: readonly SourceRef[];
   readonly createdAt: string; // ISO 8601

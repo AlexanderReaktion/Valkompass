@@ -34,6 +34,41 @@ test("2026: 592 positioner, värden i skala, källbelagda, alla par täckta", ()
   }
 });
 
+test("2026: användarmotiveringar är publik copy utan interna granskningsnoter", () => {
+  const byId = new Map(catalog2026Questions.map((q) => [q.id, q]));
+  const forbidden = [
+    /\bpolarity\b/i,
+    /kanonisk/i,
+    /baslinje/i,
+    /item-H/i,
+    /Loevingers/i,
+    /TODO/i,
+    /omankrad/i,
+    /ompositioner/i,
+    /alternativ formulering/i,
+    /spegelvänd/i,
+    /skalar/i,
+    /\bprop\./i,
+    /\bSFS\b/i,
+    /\bbet\./i,
+    /\bdir\./i,
+  ];
+
+  for (const q of catalog2026Questions) {
+    const rationale = q.rationale ?? "";
+    assert.ok(rationale.length >= 50, `${q.id}: motiveringen är för tunn`);
+    assert.ok(rationale.length <= 240, `${q.id}: motiveringen är för lång`);
+    for (const pattern of forbidden) {
+      assert.ok(!pattern.test(rationale), `${q.id}: intern notering läcker i motiveringen: ${rationale}`);
+    }
+
+    const baseId = q.id.replace(/_alt\d*$/, "");
+    if (baseId !== q.id) {
+      assert.equal(rationale, byId.get(baseId)?.rationale, `${q.id}: variant ska ärva basfrågans användarmotivering`);
+    }
+  }
+});
+
 test("2026: ideologiska ankarpartier hamnar på motsatta sidor av skalans mittpunkt", () => {
   // Kanonisk skala: 0 är mittpunkt, högre = höger/TAN/för.
   // Robusta, okontroversiella ankare som ska hålla i nuvarande data.
