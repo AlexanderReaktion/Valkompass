@@ -74,18 +74,42 @@ export interface ActiveDataset {
   readonly isPublished: boolean;
 }
 
+/**
+ * Instans-lokal cache av det aktiva datasetet. Katalogen ändras bara vid
+ * publicering, men loadActiveDataset anropas på VARJE /kompass- och
+ * /api/analyze-request; utan cache blir databasen (session-poolerns 15
+ * klienter) flaskhals under trafiktoppar när serverless skalar ut
+ * (EMAXCONNSESSION-incidenten 2026-07-17). Med 60 s TTL frågar varje varm
+ * instans databasen högst en gång i minuten, och en ny publicering slår
+ * igenom inom en minut. Fel cachas aldrig.
+ */
+const DATASET_TTL_MS = 60_000;
+let datasetCache: { readonly value: ActiveDataset; readonly expires: number; readonly election: string } | null = null;
+
+/** Testhjälp: nollställ cachen mellan testfall. */
+export function _resetDatasetCacheForTest(): void {
+  datasetCache = null;
+}
+
 export async function loadActiveDataset(election: string = ACTIVE_ELECTION): Promise<ActiveDataset> {
+  const now = Date.now();
+  if (datasetCache && datasetCache.election === election && now < datasetCache.expires) {
+    return datasetCache.value;
+  }
+
   const stores = await getStores();
   const published = await stores.catalog.getPublished(election);
   if (published) {
     const positions = positionsForCatalog(published, await stores.catalog.listPositions(), true);
-    return {
+    const dataset: ActiveDataset = {
       catalog: published,
       parties: buildParties(positions),
       scale: published.scale,
       sources: buildSources(positions),
       isPublished: true,
     };
+    datasetCache = { value: dataset, expires: now + DATASET_TTL_MS, election };
+    return dataset;
   }
 
   // Ingen publicerad katalog finns – vi skulle falla tillbaka till det OGRANSKADE
@@ -100,13 +124,15 @@ export async function loadActiveDataset(election: string = ACTIVE_ELECTION): Pro
     );
   }
 
-  return {
+  const fallback: ActiveDataset = {
     catalog: activeCatalog,
     parties: activeParties,
     scale: activeScale,
     sources: activeSources,
     isPublished: false,
   };
+  datasetCache = { value: fallback, expires: now + DATASET_TTL_MS, election };
+  return fallback;
 }
 
 export const partyNames = NAMES;
