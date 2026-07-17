@@ -15,7 +15,14 @@ export async function register(): Promise<void> {
   const isProd = Boolean(process.env.VERCEL) || process.env.NODE_ENV === "production";
   if (!isProd) return; // No-op i utveckling.
 
-  const missing = REQUIRED_PROD_ENV.filter((key) => !process.env[key]);
+  // Staging-läge (ALLOW_DRAFT_CATALOG=true): uttryckligen icke-publik drift för
+  // test/lasttest. Databas- och Upstash-kraven lättas då: storen faller tillbaka
+  // till fillagring och rate limit räknas in-memory. Admin- och cron-skydden
+  // krävs fortfarande.
+  const staging = process.env.ALLOW_DRAFT_CATALOG === "true";
+  const required = staging ? (["ADMIN_TOKEN", "CRON_SECRET"] as const) : REQUIRED_PROD_ENV;
+
+  const missing = required.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     throw new Error(
       `Saknar obligatoriska miljövariabler i produktion: ${missing.join(", ")}. ` +

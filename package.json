@@ -15,6 +15,8 @@
     "test": "node --test src/**/*.test.ts",
     "test:match": "node --test src/matching/engine.test.ts",
     "validate:scales": "node scripts/validateScales.ts",
+    "audit:neutrality": "node scripts/auditNeutrality.ts",
+    "loadtest": "node scripts/loadTest.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

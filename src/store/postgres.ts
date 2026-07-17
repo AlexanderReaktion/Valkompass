@@ -85,6 +85,11 @@ class PgResponseStore implements ResponseStore {
     this.pool = pool;
   }
 
+  async listResults(): Promise<ResultRecord[]> {
+    const r = await this.pool.query("SELECT * FROM results ORDER BY created_at");
+    return r.rows.map(rowToResult);
+  }
+
   // ON CONFLICT (id) DO NOTHING på alla save*: idempotenta omkörningar med
   // samma runId (deterministiska id:n) ska inte dubblera rader.
   async saveResult(r: ResultRecord): Promise<void> {

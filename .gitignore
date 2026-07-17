@@ -25,3 +25,6 @@ next-env.d.ts
 .DS_Store
 
 .vercel
+
+# Lokal filbaserad store (utveckling utan DATABASE_URL)
+.data/

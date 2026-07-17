@@ -17,12 +17,51 @@ import type {
   SessionExport,
 } from "./types.ts";
 
+/** Serialiserbar ögonblicksbild av katalogstoren (för fil-adaptern). */
+export interface CatalogSnapshot {
+  readonly published: PublishedCatalog[];
+  readonly questions: CatalogQuestion[];
+  readonly positions: PartyPosition[];
+}
+
+/** Serialiserbar ögonblicksbild av svarsstoren (för fil-adaptern). */
+export interface ResponsesSnapshot {
+  readonly results: ResultRecord[];
+  readonly comments: CommentRecord[];
+  readonly consents: ConsentRecord[];
+  readonly analyses: AnalysisRecord[];
+}
+
 export class MemoryCatalogStore implements CatalogStore {
   // Speglar Postgres-semantiken: lagra per (election -> version -> katalog) och
   // returnera den med högsta version (Postgres: ORDER BY version DESC LIMIT 1).
   private published = new Map<string, Map<number, PublishedCatalog>>();
   private questions = new Map<string, CatalogQuestion>();
   private positions = new Map<string, PartyPosition>();
+
+  /** Ögonblicksbild för persistens (fil-adaptern). */
+  snapshot(): CatalogSnapshot {
+    const published: PublishedCatalog[] = [];
+    for (const versions of this.published.values()) published.push(...versions.values());
+    return { published, questions: [...this.questions.values()], positions: [...this.positions.values()] };
+  }
+
+  /** Återställ från ögonblicksbild (fil-adaptern vid uppstart). */
+  hydrate(s: CatalogSnapshot): void {
+    this.published.clear();
+    this.questions.clear();
+    this.positions.clear();
+    for (const cat of s.published) {
+      let versions = this.published.get(cat.election);
+      if (!versions) {
+        versions = new Map<number, PublishedCatalog>();
+        this.published.set(cat.election, versions);
+      }
+      versions.set(cat.version, cat);
+    }
+    for (const q of s.questions) this.questions.set(q.id, q);
+    for (const p of s.positions) this.positions.set(`${p.questionId}::${p.partyId}`, p);
+  }
 
   async getPublished(election: string): Promise<PublishedCatalog | null> {
     const versions = this.published.get(election);
@@ -61,6 +100,32 @@ export class MemoryResponseStore implements ResponseStore {
   private comments = new Map<string, CommentRecord>();
   private consents = new Map<string, ConsentRecord>();
   private analyses = new Map<string, AnalysisRecord>();
+
+  /** Ögonblicksbild för persistens (fil-adaptern). */
+  snapshot(): ResponsesSnapshot {
+    return {
+      results: [...this.results.values()],
+      comments: [...this.comments.values()],
+      consents: [...this.consents.values()],
+      analyses: [...this.analyses.values()],
+    };
+  }
+
+  /** Återställ från ögonblicksbild (fil-adaptern vid uppstart). */
+  hydrate(s: ResponsesSnapshot): void {
+    this.results.clear();
+    this.comments.clear();
+    this.consents.clear();
+    this.analyses.clear();
+    for (const r of s.results) this.results.set(r.id, r);
+    for (const c of s.comments) this.comments.set(c.id, c);
+    for (const c of s.consents) this.consents.set(c.id, c);
+    for (const a of s.analyses) this.analyses.set(a.id, a);
+  }
+
+  async listResults(): Promise<ResultRecord[]> {
+    return [...this.results.values()];
+  }
 
   async saveResult(r: ResultRecord): Promise<void> {
     if (!this.results.has(r.id)) this.results.set(r.id, r);

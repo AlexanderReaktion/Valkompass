@@ -89,6 +89,12 @@ export interface SessionExport {
  */
 export interface ResponseStore {
   saveResult(record: ResultRecord): Promise<void>;
+  /**
+   * Alla lagrade resultat (för skalvalidering på riktiga svar, aggregerad
+   * analys m.m.). Innehåller inga direkta identifierare; svaren är redan
+   * pseudonymiserade via session-UUID.
+   */
+  listResults(): Promise<ResultRecord[]>;
   saveComment(record: CommentRecord): Promise<void>;
   logConsent(record: ConsentRecord): Promise<void>;
   saveAnalysis(record: AnalysisRecord): Promise<void>;

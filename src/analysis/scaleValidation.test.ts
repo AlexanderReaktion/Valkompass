@@ -71,3 +71,26 @@ test("validateScale paketerar id, alfa, H och item-diagnostik", () => {
   approx(report.scaleH, 1);
   assert.deepEqual(report.items.map((i) => i.id), ["a", "b"]);
 });
+
+test("parvis exkludering: null-celler (obesvarat/vet ej) förvränger inte kompletta par", () => {
+  // Samma sammonotona skala som ovan, men med spridda null (som riktiga svar har).
+  const sparse = [
+    [0, 0, null],
+    [1, 2, 2],
+    [2, 4, 3],
+    [null, 6, 4],
+    [4, 8, null],
+  ];
+  const { itemH, scaleH } = loevingerH(sparse);
+  approx(scaleH, 1);
+  for (const h of itemH) approx(h, 1);
+  // Rest-medlet byggs på olika delmängder per rad när data saknas, så exakt 1
+  // kan inte förväntas när frågorna har olika skala; starkt positivt räcker.
+  for (const v of itemRestCorrelations(sparse)) {
+    assert.ok(v !== null && v > 0.95, `item-rest ${v} förväntades vara > 0.95`);
+  }
+  // Färre än två kompletta par ger null i stället för nonsens.
+  assert.equal(covariance([1, null, 2], [null, 1, null]), null);
+  // Alfa räknas på komplett-fall: identiskt med matrisen av enbart kompletta rader.
+  assert.equal(cronbachAlpha(sparse), cronbachAlpha([[1, 2, 2], [2, 4, 3]]));
+});

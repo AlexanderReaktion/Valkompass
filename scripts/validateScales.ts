@@ -1,22 +1,25 @@
 /**
- * Empirisk validering av kompassens skalor (körs: npm run validate:scales).
+ * Empirisk validering av kompassens skalor.
  *
- * Läge 1 (nu, före lansering): datamatrisen är partiernas kanoniska positioner
- * (8 fall). Detta validerar POSITIONSKODNINGENS struktur: att frågorna på en
- * axel ordnar partierna åt samma håll. Alfa-nivåerna ska läsas som
- * strukturindikatorer, med n = 8 är osäkerheten stor.
+ * Läge 1 (standard): datamatrisen är partiernas kanoniska positioner (8 fall).
+ * Detta validerar POSITIONSKODNINGENS struktur: att frågorna på en axel ordnar
+ * partierna åt samma håll. Alfa-nivåerna ska läsas som strukturindikatorer,
+ * med n = 8 är osäkerheten stor.
+ *   Kör: npm run validate:scales
  *
- * Läge 2 (efter lansering): kör samma mått på användarnas kanoniska svar.
- * Svaren finns i responses-storen (saveResult → canonicalAnswers). Exportera
- * dem till en matris [respondent][fråga] och anropa validateScale på samma
- * sätt som nedan; först då är Cronbachs alfa en riktig väljarreliabilitet
- * och Mokken-tumreglerna (H >= 0.3) tillämpliga fullt ut.
+ * Läge 2 (--anvandardata): samma mått på användarnas lagrade kanoniska svar
+ * (responses-storen: Postgres när DATABASE_URL är satt, annars fillagringen i
+ * ./.data). Variantformuleringar slås ihop till sin sakfrågegrupp; obesvarat
+ * och "vet ej" blir null och hanteras parvis. Först här blir Cronbachs alfa en
+ * riktig väljarreliabilitet och Mokken-tumreglerna (H >= 0.3) fullt tillämpliga.
+ *   Kör mot prod: DATABASE_URL=<supabase-url> npm run validate:scales -- --anvandardata
  */
 
 import { catalog2026Positions, catalog2026Questions } from "../src/data/catalog2026.ts";
-import { uniqueGroupQuestions } from "../src/kompass/testPlan.ts";
+import { equivalenceKey, uniqueGroupQuestions } from "../src/kompass/testPlan.ts";
+import { getStores } from "../src/store/index.ts";
 import { pearson, validateScale } from "../src/analysis/scaleValidation.ts";
-import type { ScaleReport } from "../src/analysis/scaleValidation.ts";
+import type { Cell, ScaleReport } from "../src/analysis/scaleValidation.ts";
 
 const PARTIES = ["V", "S", "MP", "C", "L", "KD", "M", "SD"] as const;
 
@@ -52,42 +55,108 @@ function printReport(title: string, report: ScaleReport): void {
   }
 }
 
-// ---------- kör ----------
+function summarize(reports: readonly ScaleReport[]): void {
+  const flagged = reports.flatMap((r) =>
+    r.items.filter((i) => i.itemRest === null || i.h === null || i.itemRest < 0.3 || i.h < 0.3).map((i) => `${r.scale}:${i.id}`),
+  );
+  console.log(`\nSammanfattning: ${flagged.length} flaggade frågor${flagged.length > 0 ? ` (${flagged.join(", ")})` : ""}.`);
+}
 
 const unique = uniqueGroupQuestions(catalog2026Questions);
-const reports: ScaleReport[] = [];
+const itemsByDim = (dim: "economic" | "galtan"): string[] =>
+  unique.filter((q) => q.dimension === dim).map((q) => q.id);
 
-for (const dim of ["economic", "galtan"] as const) {
-  const items = unique.filter((q) => q.dimension === dim).map((q) => q.id);
-  const report = validateScale(dim, items, matrixFor(items));
-  reports.push(report);
-  printReport(dim === "economic" ? "Ekonomisk vänster–höger" : "GAL–TAN (värderingar)", report);
+// ---------- läge 1: partipositioner (strukturkontroll) ----------
+
+function runPartyMode(): void {
+  const reports: ScaleReport[] = [];
+  for (const dim of ["economic", "galtan"] as const) {
+    const items = itemsByDim(dim);
+    const report = validateScale(dim, items, matrixFor(items));
+    reports.push(report);
+    printReport(dim === "economic" ? "Ekonomisk vänster–höger" : "GAL–TAN (värderingar)", report);
+  }
+
+  // Axelkorrelation: mäter om kartans två dimensioner faktiskt är två.
+  const scoresFor = (dim: "economic" | "galtan"): number[] =>
+    matrixFor(itemsByDim(dim)).map((row) => row.reduce((s, v) => s + v, 0) / row.length);
+  const econScores = scoresFor("economic");
+  const galtanScores = scoresFor("galtan");
+  const axisR = pearson(econScores, galtanScores);
+
+  console.log("\n=== Axlarnas självständighet ===");
+  console.log(`${"parti".padEnd(6)} ${"ekonomi".padStart(8)} ${"gal-tan".padStart(8)}`);
+  PARTIES.forEach((p, i) => {
+    console.log(`${p.padEnd(6)} ${fmt(econScores[i]!).padStart(8)} ${fmt(galtanScores[i]!).padStart(8)}`);
+  });
+  console.log(`Korrelation mellan axlarna (parti-nivå): ${fmt(axisR)}`);
+  if (axisR !== null && Math.abs(axisR) > 0.85) {
+    console.log("VARNING: axlarna är nära kollineära – 2D-kartan tillför då lite utöver en enda skala.");
+  }
+
+  summarize(reports);
+  console.log(
+    "OBS: n = 8 partier. Detta är en strukturkontroll av positionskodningen, med breda osäkerhetsmarginaler.\n" +
+      "Kör med --anvandardata efter lansering för riktig väljarreliabilitet på lagrade svar.",
+  );
 }
 
-// Axelkorrelation: mäter om kartans två dimensioner faktiskt är två.
-const scoresFor = (dim: "economic" | "galtan"): number[] => {
-  const items = unique.filter((q) => q.dimension === dim).map((q) => q.id);
-  return matrixFor(items).map((row) => row.reduce((s, v) => s + v, 0) / row.length);
-};
-const econScores = scoresFor("economic");
-const galtanScores = scoresFor("galtan");
-const axisR = pearson(econScores, galtanScores);
+// ---------- läge 2: användardata (riktiga svar ur storen) ----------
 
-console.log("\n=== Axlarnas självständighet ===");
-console.log(`${"parti".padEnd(6)} ${"ekonomi".padStart(8)} ${"gal-tan".padStart(8)}`);
-PARTIES.forEach((p, i) => {
-  console.log(`${p.padEnd(6)} ${fmt(econScores[i]!).padStart(8)} ${fmt(galtanScores[i]!).padStart(8)}`);
-});
-console.log(`Korrelation mellan axlarna (parti-nivå): ${fmt(axisR)}`);
-if (axisR !== null && Math.abs(axisR) > 0.85) {
-  console.log("VARNING: axlarna är nära kollineära – 2D-kartan tillför då lite utöver en enda skala.");
+async function runUserDataMode(): Promise<void> {
+  const stores = await getStores();
+  const results = await stores.responses.listResults();
+  if (results.length === 0) {
+    console.log(
+      "Inga lagrade svar hittades i storen.\n" +
+        "Lokalt läses ./.data (fillagringen); mot produktionen: sätt DATABASE_URL till Supabase-anslutningen och kör igen.\n" +
+        "Svar lagras när en användare skickar in kommentarer med samtycke.",
+    );
+    return;
+  }
+
+  // Mappa varje formulering (inkl. _alt-varianter) till sin sakfrågegrupp och
+  // gruppens dimension. Okända id:n (t.ex. frågor som utgått) hoppas över.
+  const dimensionByGroup = new Map<string, "economic" | "galtan">();
+  for (const q of unique) if (q.dimension) dimensionByGroup.set(q.id, q.dimension);
+
+  const buildMatrix = (items: readonly string[]): Cell[][] =>
+    results.map((r) => {
+      const byGroup = new Map<string, Cell>();
+      for (const [servedId, a] of Object.entries(r.canonicalAnswers)) {
+        byGroup.set(equivalenceKey(servedId), a.value);
+      }
+      return items.map((id) => byGroup.get(id) ?? null);
+    });
+
+  console.log(`Användardata: ${results.length} lagrade körningar (en rad per körning; obesvarat/vet ej = null, parvis exkludering).`);
+  const reports: ScaleReport[] = [];
+  for (const dim of ["economic", "galtan"] as const) {
+    const items = itemsByDim(dim).filter((id) => dimensionByGroup.get(id) === dim);
+    const report = validateScale(dim, items, buildMatrix(items));
+    reports.push(report);
+    printReport(dim === "economic" ? "Ekonomisk vänster–höger" : "GAL–TAN (värderingar)", report);
+  }
+
+  // Axelkorrelation på respondentnivå: medel av besvarade frågor per axel.
+  const meanFor = (items: readonly string[]): Cell[] =>
+    buildMatrix(items).map((row) => {
+      const vals = row.filter((v): v is number => v !== null);
+      return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+    });
+  const axisR = pearson(meanFor(itemsByDim("economic")), meanFor(itemsByDim("galtan")));
+  console.log(`\nKorrelation mellan axlarna (respondentnivå): ${fmt(axisR)}`);
+
+  summarize(reports);
+  if (results.length < 200) {
+    console.log(`OBS: n = ${results.length} är för litet för stabila skattningar; tolka som tidiga indikationer.`);
+  }
 }
 
-const flagged = reports.flatMap((r) =>
-  r.items.filter((i) => i.itemRest === null || i.h === null || i.itemRest < 0.3 || i.h < 0.3).map((i) => `${r.scale}:${i.id}`),
-);
-console.log(`\nSammanfattning: ${flagged.length} flaggade frågor${flagged.length > 0 ? ` (${flagged.join(", ")})` : ""}.`);
-console.log(
-  "OBS: n = 8 partier. Detta är en strukturkontroll av positionskodningen, med breda osäkerhetsmarginaler.\n" +
-    "Kör om på användardata efter lansering (canonicalAnswers i responses-storen) för riktig reliabilitet.",
-);
+// ---------- kör ----------
+
+if (process.argv.includes("--anvandardata")) {
+  await runUserDataMode();
+} else {
+  runPartyMode();
+}
